@@ -3,13 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { ChevronLeft, ChevronRight, Palette, Share, PenLine, Star, Wand2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageUpscale, Palette, Share, PenLine, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/common/primitives";
-import { useStyleReferencePicker } from "@/components/generation/actions";
+import { upscaleGeneration, useStyleReferencePicker } from "@/components/generation/actions";
 import { shareImage } from "@/components/share/store";
 
 /** A quiet full-screen viewer with prev/next. Escape closes, arrows navigate. */
@@ -91,6 +91,12 @@ export function Lightbox({
                           <Wand2 /> Recreate in this style
                         </Link>
                       </Button>
+                      <IconButton
+                        icon={ImageUpscale}
+                        label="Upscale with AI"
+                        onClick={() => void upscaleGeneration(g)}
+                        className="text-white/70 hover:bg-white/10 hover:text-white"
+                      />
                       <IconButton
                         icon={Palette}
                         label="Use as style reference"

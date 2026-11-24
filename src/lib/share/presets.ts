@@ -22,7 +22,7 @@ export const SIZE_PRESETS = [
   { key: "social", label: "Social", hint: "1080 px on the short edge" },
   { key: "web", label: "Web", hint: "2048 px on the long edge" },
   { key: "original", label: "Original", hint: "Full resolution" },
-  { key: "large", label: "Large", hint: "4096 px, upscaled if needed" },
+  { key: "large", label: "Large", hint: "4096 px, enlarged if needed" },
 ] as const;
 export type SizeKey = (typeof SIZE_PRESETS)[number]["key"];
 export const SIZE_KEYS = SIZE_PRESETS.map((s) => s.key) as [SizeKey, ...SizeKey[]];

@@ -2,8 +2,8 @@
 
 import { toast } from "sonner";
 import { create } from "zustand";
-import type { Generation } from "@/lib/domain/schemas";
-import { api, assetDownload, downloadPost, errorMessage } from "@/lib/client/api";
+import { type Generation, sceneContentSchema } from "@/lib/domain/schemas";
+import { api, ApiError, assetDownload, downloadPost, errorMessage, newIdempotencyKey } from "@/lib/client/api";
 import { invalidate } from "@/lib/client/resource";
 import { confirmAction } from "@/components/common/confirm";
 
@@ -104,3 +104,48 @@ export const useStyleReferencePicker = create<{ ids: string[]; open: boolean; sh
   show: (ids) => set({ ids, open: true }),
   close: () => set({ open: false }),
 }));
+
+/**
+ * Re-render an image at twice its size with AI, without changing it. Runs from
+ * anywhere; the result appears beside the original, tagged "upscaled".
+ */
+export async function upscaleGeneration(g: Generation, onOpen?: (id: string) => void) {
+  const body = {
+    idempotencyKey: newIdempotencyKey(),
+    sceneId: g.sceneId,
+    scene: g.sceneSnapshot ?? sceneContentSchema.parse({ title: g.title }),
+    operation: "refine" as const,
+    parentGenerationId: g.id,
+    instruction: "",
+    useReferences: false,
+    confirmedCost: false,
+    upscale: true,
+  };
+  const submit = (confirmedCost: boolean) => api<{ generations: Generation[] }>("/api/generations", { body: { ...body, confirmedCost } });
+  try {
+    let res;
+    try {
+      res = await submit(false);
+    } catch (err) {
+      if (!(err instanceof ApiError && err.code === "confirm_cost")) throw err;
+      const d = err.details as { estimateUsd: number };
+      const ok = await confirmAction({
+        title: `Upscale for about $${d.estimateUsd.toFixed(2)}?`,
+        description: "This is above your confirmation threshold.",
+        confirmLabel: "Upscale",
+      });
+      if (!ok) return null;
+      res = await submit(true);
+    }
+    invalidate(...GENERATION_KEYS);
+    const next = res.generations[0];
+    toast.success(`Upscaling ${g.title}`, {
+      description: "It appears next to the original when it is ready.",
+      action: next && onOpen ? { label: "Open", onClick: () => onOpen(next.id) } : undefined,
+    });
+    return next ?? null;
+  } catch (err) {
+    toast.error(errorMessage(err));
+    return null;
+  }
+}

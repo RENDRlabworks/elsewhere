@@ -59,7 +59,7 @@ export function CollectionsIndex() {
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-8 py-8">
+        <div className="px-4 py-4 md:px-8 md:py-8">
           {loading ? (
             <Grid>
               {Array.from({ length: 6 }, (_, i) => (
@@ -124,7 +124,7 @@ export function CollectionsIndex() {
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-8 gap-y-12">{children}</div>;
+  return <div className="grid grid-cols-[repeat(auto-fill,minmax(min(260px,calc(50%-8px)),1fr))] gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">{children}</div>;
 }
 
 function CollectionCard({ collection: c, priority, onOpen }: { collection: CollectionSummary; priority?: boolean; onOpen: (id: string) => void }) {

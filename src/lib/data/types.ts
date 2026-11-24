@@ -4,6 +4,7 @@ import type {
   CollectionItem,
   Generation,
   GenerationJob,
+  Idea,
   ImageReview,
   PromptTemplate,
   PromptVersion,
@@ -40,6 +41,7 @@ export type Tables = {
   taggings: Tagging;
   image_reviews: ImageReview;
   usage_records: UsageRecord;
+  ideas: Idea;
 };
 export type TableName = keyof Tables;
 
@@ -55,6 +57,7 @@ export const TABLES_WITH_UPDATED_AT: ReadonlySet<TableName> = new Set<TableName>
   "generations",
   "generation_jobs",
   "collections",
+  "ideas",
 ]);
 
 export type Condition<V> =

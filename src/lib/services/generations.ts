@@ -13,7 +13,7 @@ import {
   type StyleProfile,
   type StyleSnapshot,
 } from "@/lib/domain/schemas";
-import { COMPOSITION_PRESET_OPTIONS } from "@/lib/domain/vocab";
+import { ASPECT_RATIOS, type AspectRatio, COMPOSITION_PRESET_OPTIONS } from "@/lib/domain/vocab";
 import { assemblePrompt } from "@/lib/prompt/assemble";
 import { effectiveSwatches } from "@/lib/palette/engine";
 import { costFromUsage, estimateCost, resolveSize, supportedQuality } from "@/lib/providers/image/models";
@@ -92,11 +92,63 @@ export async function getPreferences(ctx: ServerContext): Promise<Preferences> {
   return row.data;
 }
 
+export const UPSCALE_INSTRUCTION =
+  "Upscale only. Reproduce this exact image at a higher resolution: the same composition, subject, placement, scale, colours, light, grain and brushwork. Resolve fine detail the way the original medium would. Do not add, remove, move, restyle or recolour anything.";
+
+/** Closest supported aspect ratio for an image's pixel size. */
+export function nearestAspect(width: number, height: number): AspectRatio {
+  const r = width / height;
+  let best: AspectRatio = "1:1";
+  let diff = Infinity;
+  for (const a of ASPECT_RATIOS) {
+    const [w, h] = a.split(":").map(Number);
+    const d = Math.abs(Math.log(w / h / r));
+    if (d < diff) {
+      diff = d;
+      best = a;
+    }
+  }
+  return best;
+}
+
+/**
+ * An upscale is a refinement with a fixed instruction, made from the source image's
+ * own scene at twice its size (up to what the model allows), at high quality.
+ */
+async function resolveRequest(ctx: ServerContext, req: GenerationRequest): Promise<GenerationRequest> {
+  if (!req.upscale) return req;
+  if (!req.parentGenerationId) throw new HttpError(400, "Choose an image to upscale.");
+  const parent = await ctx.db.table("generations").get(req.parentGenerationId);
+  if (!parent?.assetId || !parent.width || !parent.height) throw notFound("Source image");
+  const base = parent.sceneSnapshot ?? req.scene;
+  const long = Math.max(parent.width, parent.height);
+  return {
+    ...req,
+    operation: "refine",
+    sceneId: parent.sceneId ?? req.sceneId,
+    instruction: UPSCALE_INSTRUCTION,
+    useReferences: false,
+    scene: {
+      ...base,
+      title: parent.title,
+      promptOverride: null,
+      output: {
+        ...base.output,
+        aspectRatio: nearestAspect(parent.width, parent.height),
+        longEdge: Math.min(3840, Math.max(2048, long * 2)),
+        quality: "high",
+        count: 1,
+      },
+    },
+  };
+}
+
 /**
  * Work out exactly what will be sent to the provider, without side effects.
  * Used both for the cost/capability preview and for real submissions.
  */
-export async function planGeneration(ctx: ServerContext, req: GenerationRequest): Promise<GenerationPlan> {
+export async function planGeneration(ctx: ServerContext, request: GenerationRequest): Promise<GenerationPlan> {
+  const req = await resolveRequest(ctx, request);
   const prefs = await getPreferences(ctx);
   const scene: SceneContent = req.scene;
   const notes: string[] = [];
@@ -285,7 +337,8 @@ function sanitiseRequest(req: GenerationRequest) {
   return { ...req, scene: { ...req.scene } } as unknown as Record<string, unknown>;
 }
 
-export async function startGeneration(ctx: ServerContext, req: GenerationRequest) {
+export async function startGeneration(ctx: ServerContext, request: GenerationRequest) {
+  const req = await resolveRequest(ctx, request);
   const jobs = ctx.db.table("generation_jobs");
   await sweepStaleJobs(ctx);
 
@@ -354,7 +407,7 @@ export async function startGeneration(ctx: ServerContext, req: GenerationRequest
     favorite: false,
     reviewStatus: "unreviewed" as const,
     notes: "",
-    tags: [] as string[],
+    tags: req.upscale ? ["upscaled"] : ([] as string[]),
     characterKind: scene.subject.kind,
     environment: scene.environment,
     paletteHexes: swatches,

@@ -24,6 +24,7 @@ import {
   setReviewStatus,
   STATUS_LABEL,
   toggleFavorite,
+  upscaleGeneration,
   useCollectionPicker,
   useStyleReferencePicker,
 } from "./actions";
@@ -50,6 +51,7 @@ export function GenerationContextMenu({
           <ContextMenuItem onSelect={() => router.push(`/studio?restore=${g.id}`)}>Restore scene settings</ContextMenuItem>
         ) : null}
         <ContextMenuItem disabled={!done} onSelect={() => router.push(`/studio?recreate=${g.id}`)}>Recreate in this style</ContextMenuItem>
+        <ContextMenuItem disabled={!done} onSelect={() => void upscaleGeneration(g, (id) => router.push(`/studio?generation=${id}`))}>Upscale with AI</ContextMenuItem>
         <ContextMenuItem disabled={!done} onSelect={() => stylePicker.show([g.id])}>Use as style reference…</ContextMenuItem>
         {extra}
         <ContextMenuSeparator />

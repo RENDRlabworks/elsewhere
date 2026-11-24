@@ -36,8 +36,8 @@ export function ArchiveFilters({
   const charName = (k: string) => CHARACTER_OPTIONS.find((o) => o.key === k)?.label ?? titleCase(k);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex rounded-md border border-border p-0.5" role="group" aria-label="Review filter">
+    <div className="flex w-max items-center gap-2 md:w-auto md:flex-wrap">
+      <div className="flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Review filter">
         {REVIEW_FILTERS.map((f) => (
           <button
             key={f.key}
@@ -260,7 +260,7 @@ export function SearchField({
   label?: string;
 }) {
   return (
-    <div className="relative w-72">
+    <div className="relative w-full md:w-72">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-text-muted" />
       <Input
         ref={inputRef}
@@ -275,7 +275,7 @@ export function SearchField({
         }}
         placeholder={placeholder}
         aria-label={label}
-        className="h-8 pr-8 pl-8 text-[12.5px] [&::-webkit-search-cancel-button]:hidden"
+        className="h-10 pr-8 pl-8 text-[16px] md:h-8 md:text-[12.5px] [&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (
         <button
@@ -287,7 +287,7 @@ export function SearchField({
           <X className="size-3" />
         </button>
       ) : (
-        <Kbd className="absolute top-1/2 right-2 -translate-y-1/2">/</Kbd>
+        <Kbd className="absolute top-1/2 right-2 hidden -translate-y-1/2 md:inline-flex">/</Kbd>
       )}
     </div>
   );

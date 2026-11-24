@@ -172,7 +172,7 @@ function GenerateBar({ session }: { session: StudioSession }) {
       <Button className="h-11 w-full rounded-xl text-[14px]" onClick={() => void session.generate()} disabled={session.generating} aria-keyshortcuts="Meta+Enter">
         {session.generating ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
         Generate{count > 1 ? ` ${count}` : ""}
-        <Kbd className="ml-1 bg-black/10 text-primary-foreground">⌘↵</Kbd>
+        <Kbd className="ml-1 hidden bg-black/10 text-primary-foreground md:inline-flex">⌘↵</Kbd>
       </Button>
     </div>
   );
@@ -205,7 +205,7 @@ export function DirectPanel({ session }: { session: StudioSession }) {
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="flex h-12 shrink-0 items-center justify-between px-4">
-        <span className="text-[13px] text-text-secondary">Direct</span>
+        <span className="hidden text-[13px] text-text-secondary md:inline">Direct</span>
         <div className="flex items-center gap-0.5">
           <IconButton icon={Undo2} label="Undo" shortcut="⌘Z" disabled={!canUndo} onClick={undo} />
           <IconButton icon={Redo2} label="Redo" shortcut="⇧⌘Z" disabled={!canRedo} onClick={redo} />

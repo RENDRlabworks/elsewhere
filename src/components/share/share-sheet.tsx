@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Check, Copy, Download, ImageIcon, LoaderCircle, Share, Sparkles } from "lucide-react";
+import { Check, Copy, Download, ImageIcon, ImageUpscale, LoaderCircle, Share, Sparkles } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { api, assetSrc, downloadPost, errorMessage } from "@/lib/client/api";
 import { mutateResource, useResource } from "@/lib/client/resource";
@@ -20,10 +20,12 @@ import {
   SIZE_PRESETS,
 } from "@/lib/share/presets";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/client/use-media";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useShareSheet, type ShareTarget } from "./store";
+import { upscaleGeneration } from "@/components/generation/actions";
 
 type ShareTextResponse = ShareText & { saved: boolean; aiAvailable: boolean };
 
@@ -33,7 +35,7 @@ export function ShareSheet() {
   const close = useShareSheet((s) => s.close);
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl">
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)] sm:max-w-5xl">
         {target?.kind === "image" ? <ImageShare key={target.generation.id} g={target.generation} /> : target ? <BatchExport target={target} /> : null}
       </DialogContent>
     </Dialog>
@@ -117,8 +119,8 @@ function CropPreview({ g, options, onFocus }: { g: Generation; options: ExportOp
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#030304] p-6">
-      <div className="relative min-h-0 max-w-full" style={{ aspectRatio: w && h ? `${w} / ${h}` : undefined, height: "min(58vh, 620px)" }}>
+    <div className="flex shrink-0 flex-col items-center justify-center gap-3 bg-[#030304] p-4 md:min-h-0 md:flex-1 md:shrink md:p-6">
+      <div className="relative h-[38vh] min-h-0 max-w-full md:h-[min(58vh,620px)]" style={{ aspectRatio: w && h ? `${w} / ${h}` : undefined }}>
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -188,7 +190,7 @@ function CropPreview({ g, options, onFocus }: { g: Generation; options: ExportOp
       </div>
       <p className="text-[11.5px] text-text-muted tabular-nums" aria-live="polite">
         {out ? `${out.width} × ${out.height} px` : ""}
-        {out?.upscaled ? " · upscaled" : ""}
+        {out?.upscaled ? " · enlarged" : ""}
         {rect && cropRatio(options.crop) && (movableX || movableY) ? " · drag the frame to reposition" : ""}
       </p>
     </div>
@@ -340,6 +342,8 @@ function ImageShare({ g }: { g: Generation }) {
   const url = `/api/generations/${g.id}/export?${exportQuery(options)}`;
   const filename = exportFilename(g.title, options);
   const canShareFiles = typeof navigator !== "undefined" && typeof navigator.canShare === "function";
+  // On touch devices the system share sheet is the natural way out (and how photos reach the camera roll).
+  const touch = useMediaQuery("(pointer: coarse)");
 
   async function nativeShare() {
     setBusy("share");
@@ -380,10 +384,18 @@ function ImageShare({ g }: { g: Generation }) {
         <DialogTitle className="text-[15px] font-medium">Share {g.title}</DialogTitle>
         <DialogDescription className="sr-only">Choose a crop, size and format, and write the caption and alt text to post with it.</DialogDescription>
       </DialogHeader>
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <CropPreview g={g} options={options} onFocus={(focusX, focusY) => setOptions({ focusX, focusY })} />
-        <div className="w-full shrink-0 space-y-6 overflow-y-auto border-t border-border p-5 md:w-[360px] md:border-t-0 md:border-l">
+        <div className="w-full shrink-0 space-y-6 border-t border-border p-4 md:w-[360px] md:overflow-y-auto md:border-t-0 md:border-l md:p-5">
           <ExportControls options={options} onChange={setOptions} />
+          {options.size === "large" && Math.max(g.width ?? 0, g.height ?? 0) < 3600 ? (
+            <div className="rounded-lg bg-elevated/60 p-3 text-[12px] leading-relaxed text-text-secondary">
+              Large enlarges this image with resampling. For real added detail, upscale it with AI first.
+              <Button size="xs" variant="secondary" className="mt-2" onClick={() => void upscaleGeneration(g)}>
+                <ImageUpscale /> Upscale with AI
+              </Button>
+            </div>
+          ) : null}
           <div className="h-px bg-border" />
           {text ? (
             <ShareWords g={g} initial={text} onText={(t) => (words.current = t)} />
@@ -401,11 +413,11 @@ function ImageShare({ g }: { g: Generation }) {
             {busy === "copy" ? <LoaderCircle className="animate-spin" /> : <ImageIcon />} Copy image
           </Button>
           {canShareFiles ? (
-            <Button size="sm" variant="secondary" onClick={() => void nativeShare()} disabled={!!busy}>
+            <Button size="sm" variant={touch ? "default" : "secondary"} className={touch ? "order-last" : ""} onClick={() => void nativeShare()} disabled={!!busy}>
               {busy === "share" ? <LoaderCircle className="animate-spin" /> : <Share />} Share
             </Button>
           ) : null}
-          <Button size="sm" asChild>
+          <Button size="sm" variant={touch && canShareFiles ? "secondary" : "default"} asChild>
             <a href={url} download={filename}>
               <Download /> Download
             </a>
