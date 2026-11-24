@@ -110,3 +110,12 @@ describe("composition analytics", () => {
     expect(insights.acceptance.rate).toBe(1);
   });
 });
+
+describe("patch schemas", () => {
+  it("never fill omitted fields with defaults", async () => {
+    const { sceneUpdateSchema, styleProfileUpdateSchema, preferencesPatchSchema } = await import("@/lib/domain/schemas");
+    expect(sceneUpdateSchema.parse({ title: "x" })).toEqual({ title: "x" });
+    expect(styleProfileUpdateSchema.parse({ attributes: { grain: "g" } })).toEqual({ attributes: { grain: "g" } });
+    expect(preferencesPatchSchema.parse({ ui: { theme: "black" } })).toEqual({ ui: { theme: "black" } });
+  });
+});

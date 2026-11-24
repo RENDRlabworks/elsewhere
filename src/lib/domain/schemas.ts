@@ -20,6 +20,19 @@ import {
   TIMES_OF_DAY,
 } from "./vocab";
 
+/**
+ * Zod 4 applies `.default()` even inside `.partial()`, which would turn a partial
+ * PATCH into a reset of every omitted field. Patch schemas strip defaults first.
+ */
+export function patchOf<S extends z.ZodRawShape>(obj: z.ZodObject<S>) {
+  const shape: Record<string, z.ZodType> = {};
+  for (const [k, v] of Object.entries(obj.shape)) {
+    const inner = v instanceof z.ZodDefault ? (v.unwrap() as z.ZodType) : (v as z.ZodType);
+    shape[k] = inner.optional();
+  }
+  return z.object(shape) as unknown as z.ZodType<Partial<z.infer<z.ZodObject<S>>>>;
+}
+
 const shortText = z.string().max(400).default("");
 const longText = z.string().max(4000).default("");
 const id = z.string().min(1).max(64);
@@ -145,14 +158,14 @@ export type StyleProfileVersion = {
 export const styleProfileCreateSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().max(1000).default(""),
-  attributes: styleAttributesSchema.partial().default({}),
+  attributes: patchOf(styleAttributesSchema).default({}),
   defaultPalette: z.array(swatchSchema).max(12).default([]),
 });
 
 export const styleProfileUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   description: z.string().max(1000).optional(),
-  attributes: styleAttributesSchema.partial().optional(),
+  attributes: patchOf(styleAttributesSchema).optional(),
   defaultPalette: z.array(swatchSchema).max(12).optional(),
   archived: z.boolean().optional(),
 });
@@ -322,10 +335,10 @@ export const sceneCreateSchema = sceneContentSchema.partial().extend({
   status: z.enum(["draft", "concept"]).default("draft"),
   origin: z.enum(["studio", "explore", "restore"]).default("studio"),
 });
-export const sceneUpdateSchema = sceneContentSchema.partial().extend({
-  status: z.enum(["draft", "concept"]).optional(),
-  archived: z.boolean().optional(),
-});
+export const sceneUpdateSchema = z.intersection(
+  patchOf(sceneContentSchema),
+  z.object({ status: z.enum(["draft", "concept"]).optional(), archived: z.boolean().optional() }),
+);
 
 /* -------------------------------------------------------------------------- */
 /* Palettes, templates, prompt versions                                       */
@@ -434,6 +447,10 @@ export type Generation = {
   notes: string;
   tags: string[];
   searchText: string;
+  /** Denormalised from the scene snapshot for fast filtering. */
+  characterKind: string | null;
+  environment: string;
+  paletteHexes: string[];
   variationIndex: number;
   isDevPlaceholder: boolean;
   createdAt: string;
@@ -692,10 +709,10 @@ export const preferencesSchema = z.object({
 export type Preferences = z.infer<typeof preferencesSchema>;
 
 export const preferencesPatchSchema = z.object({
-  defaults: preferencesSchema.shape.defaults.unwrap().partial().optional(),
-  limits: preferencesSchema.shape.limits.unwrap().partial().optional(),
-  ui: preferencesSchema.shape.ui.unwrap().partial().optional(),
-  autosave: preferencesSchema.shape.autosave.unwrap().partial().optional(),
+  defaults: patchOf(preferencesSchema.shape.defaults.unwrap()).optional(),
+  limits: patchOf(preferencesSchema.shape.limits.unwrap()).optional(),
+  ui: patchOf(preferencesSchema.shape.ui.unwrap()).optional(),
+  autosave: patchOf(preferencesSchema.shape.autosave.unwrap()).optional(),
   shortcuts: z.record(z.string(), z.string()).optional(),
   lastSceneId: z.string().nullable().optional(),
   activeStyleProfileId: z.string().nullable().optional(),
