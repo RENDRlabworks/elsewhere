@@ -45,6 +45,7 @@ import { heightToSlider, PanelSection, SelectField, SliderField, sliderToHeight,
 import { IdeaButton } from "./idea-button";
 import { OutputSection } from "./output-section";
 import { StartingImageSection } from "./starting-image";
+import { applySubjectChange } from "./subject-sync";
 import type { StudioSession } from "./use-studio-session";
 
 function useField() {
@@ -67,6 +68,8 @@ function CharacterEditor({
   slot?: "subject" | "secondarySubject";
 }) {
   const set = (p: Partial<Character>) => onChange({ ...value, ...p });
+  // A typed description is followed through the scene once, when the field loses focus.
+  const labelAtFocus = React.useRef<Character | null>(null);
   const isHuman = HUMAN_KINDS.includes(value.kind);
   if (value.kind === "none") {
     return (
@@ -82,6 +85,15 @@ function CharacterEditor({
           value={value.label}
           onChange={(label) => set({ label })}
           placeholder={value.kind === "object" ? "a red umbrella" : "optional"}
+          onFocus={() => {
+            labelAtFocus.current = useStudio.getState().scene[slot];
+          }}
+          onBlur={() => {
+            const before = labelAtFocus.current;
+            labelAtFocus.current = null;
+            const now = useStudio.getState().scene[slot];
+            if (before && now && before.label.trim() !== now.label.trim()) applySubjectChange(slot, now, before);
+          }}
           trailing={<IdeaButton field="subjectLabel" slot={slot} label={value.kind === "object" ? "Object" : "Description"} />}
         />
       </div>
@@ -199,6 +211,13 @@ function SceneSection() {
   );
 }
 
+/** Kind changes follow through the scene at once; typed descriptions follow on blur. */
+function onCharacter(slot: "subject" | "secondarySubject", next: Character) {
+  const prev = useStudio.getState().scene[slot];
+  if (prev && prev.kind !== next.kind) applySubjectChange(slot, next);
+  else useStudio.getState().update({ [slot]: next });
+}
+
 function SubjectSection() {
   const { scene, update, lock } = useField();
   const l = lock("subject");
@@ -208,7 +227,7 @@ function SubjectSection() {
       title="Subject"
       aside={<LockChip {...l} label="subject" />}
     >
-      <CharacterEditor value={scene.subject} onChange={(subject) => update({ subject })} />
+      <CharacterEditor value={scene.subject} onChange={(subject) => onCharacter("subject", subject)} />
       <div className="border-t border-border pt-3">
         <div className="flex items-center justify-between">
           <span className="text-[12px] text-text-secondary">Secondary subject</span>
@@ -220,7 +239,7 @@ function SubjectSection() {
         </div>
         {scene.secondarySubject ? (
           <div className="mt-3">
-            <CharacterEditor compact slot="secondarySubject" value={scene.secondarySubject} onChange={(secondarySubject) => update({ secondarySubject })} />
+            <CharacterEditor compact slot="secondarySubject" value={scene.secondarySubject} onChange={(secondarySubject) => onCharacter("secondarySubject", secondarySubject)} />
           </div>
         ) : (
           <p className="mt-1 text-[11px] text-text-muted">Only when the scene genuinely needs two subjects.</p>

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApp } from "@/stores/app";
 import { useStudio } from "@/stores/studio";
+import { applySubjectChange } from "./subject-sync";
 
 type Slot = "subject" | "secondarySubject";
 
@@ -73,8 +74,11 @@ async function nextIdea(field: IdeaField, slot: Slot, useAi: boolean): Promise<s
 
 function apply(field: IdeaField, slot: Slot, idea: string) {
   const st = useStudio.getState();
-  if (isCharacterField(field)) {
-    const key = field === "subjectLabel" ? "label" : field;
+  if (field === "subjectLabel") {
+    const c = characterOf(st.scene, slot);
+    if (c) applySubjectChange(slot, { ...c, label: idea });
+  } else if (isCharacterField(field)) {
+    const key = field;
     st.update((sc) => {
       const c = characterOf(sc, slot);
       return c ? { [slot]: { ...c, [key]: idea } } : {};

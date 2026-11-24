@@ -104,6 +104,40 @@ test("works from a starting image chosen in the Studio and fills fields with ide
   await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
 });
 
+test("suggestion menus open with every option even when the field has text", async ({ page }) => {
+  await openStudio(page);
+  const env = page.getByLabel("Environment", { exact: true });
+  await env.fill("a black volcanic coastline");
+  await env.locator("..").getByRole("button", { name: "Show suggestions" }).click();
+  const list = page.getByRole("listbox", { name: "Suggestions" });
+  await expect(list.getByRole("option")).toHaveCount(20);
+  await list.getByRole("option", { name: "a vast salt flat stretching to an invisible horizon" }).click();
+  await expect(env).toHaveValue("a vast salt flat stretching to an invisible horizon");
+  await expect(list).toBeHidden();
+  // Typing filters; ArrowDown and Enter choose.
+  await env.fill("forest");
+  await expect(list.getByRole("option")).not.toHaveCount(0);
+  await env.press("ArrowDown");
+  await env.press("Enter");
+  await expect(env).toHaveValue(/forest/);
+});
+
+test("changing the subject rewrites the fields that name it", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: "New scene" }).click();
+  await page.getByLabel("Title", { exact: true }).fill("The Fox's Wish");
+  await page.getByLabel("Description", { exact: true }).first().fill("A fox beneath a dandelion clock.");
+  await page.getByLabel("Character", { exact: true }).first().click();
+  await page.getByRole("option", { name: "Fox" }).click();
+  await page.getByLabel("Character", { exact: true }).first().click();
+  await page.getByRole("option", { name: "Horse" }).click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Horse's Wish");
+  await expect(page.getByLabel("Description", { exact: true }).first()).toHaveValue("A horse beneath a dandelion clock.");
+  await expect(page.getByText(/Updated the title and description to match the horse/)).toBeVisible();
+  await page.getByRole("button", { name: "Undo" }).first().click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Fox's Wish");
+});
+
 test("locked Style DNA attributes cannot be changed through the API", async ({ request }) => {
   const { profiles } = await (await request.get("/api/styles")).json();
   const id = profiles[0].id as string;
