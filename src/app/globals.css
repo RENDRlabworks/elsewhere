@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Elsewhere design tokens.
+ * The interface stays near-neutral so the artwork carries the colour.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-interactive: var(--interactive);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
+  --radius-4xl: 10px;
+
+  --text-2xs: 10.5px;
+  --text-2xs--line-height: 14px;
+}
+
+:root,
+.dark {
+  --background: #09090b;
+  --surface: #111113;
+  --elevated: #19191c;
+  --interactive: #222225;
+  --border: #29292e;
+  --text-muted: #74747d;
+  --text-secondary: #a1a1aa;
+  --foreground: #ededef;
+
+  --primary: #f4f4f5;
+  --primary-foreground: #111113;
+
+  --card: #111113;
+  --card-foreground: #ededef;
+  --popover: #19191c;
+  --popover-foreground: #ededef;
+  --secondary: #222225;
+  --secondary-foreground: #ededef;
+  --muted: #19191c;
+  --muted-foreground: #74747d;
+  --accent: #222225;
+  --accent-foreground: #ededef;
+  --destructive: #d0675e;
+  --input: #29292e;
+  --ring: #74747d;
+
+  --success: #7fa98a;
+  --warning: #c9a15a;
+  --danger: #d0675e;
+  --info: #8a9fc0;
+
+  --radius: 6px;
+  color-scheme: dark;
+}
+
+/* "Gallery black": an even quieter canvas for presentation. */
+:root[data-theme="black"] {
+  --background: #000000;
+  --surface: #0a0a0b;
+  --elevated: #121214;
+  --interactive: #1a1a1d;
+  --border: #222226;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  ::selection {
+    background: #3a3a40;
+  }
+  :focus-visible {
+    outline: 1px solid var(--text-secondary);
+    outline-offset: 1px;
+  }
+  /* Thin, quiet scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2c2c31 transparent;
+  }
+}
+
+@layer utilities {
+  .label-meta {
+    font-size: 10.5px;
+    line-height: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .text-editorial {
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .checkerboard {
+    background-image:
+      linear-gradient(45deg, #1a1a1d 25%, transparent 25%),
+      linear-gradient(-45deg, #1a1a1d 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1a1a1d 75%),
+      linear-gradient(-45deg, transparent 75%, #1a1a1d 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
