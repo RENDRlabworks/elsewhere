@@ -45,10 +45,7 @@ export function ConfirmHost() {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => close(false)}>{opts?.cancelLabel ?? "Cancel"}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => close(true)}
-            className={opts?.destructive ? "bg-danger text-white hover:bg-danger/85" : undefined}
-          >
+          <AlertDialogAction onClick={() => close(true)} variant={opts?.destructive ? "destructive" : "default"}>
             {opts?.confirmLabel ?? "Confirm"}
           </AlertDialogAction>
         </AlertDialogFooter>

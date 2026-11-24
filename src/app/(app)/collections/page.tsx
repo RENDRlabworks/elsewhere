@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@/components/common/primitives";
+import { CollectionsIndex } from "@/components/collections/collections-index";
 
-export default function Page() {
-  return <PageHeader title="Collections" description="This destination is being built." />;
+export default function CollectionsPage() {
+  return <CollectionsIndex />;
 }

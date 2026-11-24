@@ -95,7 +95,8 @@ export function GenerationTile({
   const ratio = aspect === "square" ? "1 / 1" : aspect === "portrait" ? "4 / 5" : g.width && g.height ? `${g.width} / ${g.height}` : "4 / 5";
   return (
     <GenerationContextMenu generation={g}>
-      <div className={cn("group relative", className)}>
+      <div className={cn("group", className)}>
+        <div className="relative">
         <button
           type="button"
           onClick={(e) => {
@@ -147,6 +148,7 @@ export function GenerationTile({
             {selected ? <Check className="size-3" /> : null}
           </button>
         ) : null}
+        </div>
         {showMeta ? (
           <div className="mt-2 flex items-center justify-between gap-2">
             <div className="truncate text-[12px] text-text-secondary">{g.title}</div>
