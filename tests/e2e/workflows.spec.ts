@@ -271,7 +271,7 @@ test("captures an idea and makes it a scene", async ({ page }) => {
   await expect(page.locator("main").getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 15_000 });
   await page.keyboard.press("n");
   const dialog = page.getByRole("dialog", { name: "Capture an idea" });
-  await dialog.getByLabel("Idea").fill("A heron standing in a flooded ballroom\nThe chandeliers are lit underwater");
+  await dialog.getByLabel("Idea", { exact: true }).fill("A heron standing in a flooded ballroom\nThe chandeliers are lit underwater");
   await dialog.getByRole("button", { name: "Save to inbox" }).click();
   await expect(page.getByText("Saved to your inbox")).toBeVisible();
 
@@ -382,4 +382,36 @@ test("tabs hold separate scenes, switch, close and come back after a reload", as
   await expect(strip.getByRole("tab", { name: "Tab two" })).toHaveCount(0);
   const { scenes } = await (await page.request.get("/api/scenes")).json();
   expect(scenes.some((s: { title: string }) => s.title === "Tab two")).toBe(true);
+});
+
+test("photos can be pasted into the inbox, in the box or anywhere on the page", async ({ page }) => {
+  await page.goto("/inbox");
+  const composer = page.getByRole("form", { name: "New idea" });
+  await expect(composer).toBeVisible({ timeout: 15_000 });
+
+  // Paste with nothing focused, as straight after copying a photo in another app.
+  await page.evaluate(async () => {
+    const c = document.createElement("canvas");
+    c.width = 64;
+    c.height = 80;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#3b4a6b";
+    ctx.fillRect(0, 0, 64, 80);
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), "image/png"));
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], "copied.png", { type: "image/png" }));
+    (document.activeElement as HTMLElement | null)?.blur();
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+  await expect(composer.getByRole("img", { name: "Attached photo" })).toBeVisible();
+  await composer.getByLabel("Idea", { exact: true }).fill("Pasted light study");
+  await composer.getByRole("button", { name: "Save to inbox" }).click();
+  const card = page.getByRole("listitem").filter({ hasText: "Pasted light study" });
+  await expect(card).toBeVisible();
+  await expect(card.locator("img")).toBeVisible();
+
+  const { ideas } = await (await page.request.get("/api/inbox")).json();
+  const idea = ideas.find((i: { text: string }) => i.text === "Pasted light study");
+  expect(idea?.assetId).toBeTruthy();
+  expect(idea?.source).toBe("photo");
 });
