@@ -164,8 +164,9 @@ function VersionHistory({
   current: string;
 }) {
   const { data } = useResource<{ versions: PromptVersion[] }>(open && sceneId ? `/api/scenes/${sceneId}/prompt-versions` : null);
-  const [selected, setSelected] = React.useState<PromptVersion | null>(null);
-  React.useEffect(() => setSelected(data?.versions[0] ?? null), [data]);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const selected = data?.versions.find((v) => v.id === selectedId) ?? data?.versions[0] ?? null;
+  const setSelected = (v: PromptVersion) => setSelectedId(v.id);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
@@ -256,9 +257,11 @@ function RefineDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   const [direction, setDirection] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<Refinement | null>(null);
-  React.useEffect(() => {
+  const [wasOpen, setWasOpen] = React.useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
     if (!open) setResult(null);
-  }, [open]);
+  }
   const run = async () => {
     setBusy(true);
     try {

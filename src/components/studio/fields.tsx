@@ -25,14 +25,20 @@ export function PanelSection({
   aside?: React.ReactNode;
 }) {
   const storageKey = `elsewhere.section.${id}`;
-  const [open, setOpen] = React.useState(defaultOpen);
-  React.useEffect(() => {
-    const v = localStorage.getItem(storageKey);
-    if (v != null) setOpen(v === "1");
-  }, [storageKey]);
+  const [open, setOpen] = React.useState(() => {
+    if (typeof window === "undefined") return defaultOpen;
+    try {
+      const v = localStorage.getItem(storageKey);
+      return v == null ? defaultOpen : v === "1";
+    } catch {
+      return defaultOpen;
+    }
+  });
   const toggle = () => {
     setOpen((o) => {
-      localStorage.setItem(storageKey, o ? "0" : "1");
+      try {
+        localStorage.setItem(storageKey, o ? "0" : "1");
+      } catch {}
       return !o;
     });
   };

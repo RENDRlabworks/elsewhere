@@ -37,8 +37,8 @@ function Row({ label, children, mono }: { label: string; children: React.ReactNo
 
 /** Edits a metadata field on blur. Historical generation parameters are never touched. */
 function useMetaField<T>(g: Generation, key: "title" | "notes", initial: T) {
+  // The panel is keyed by image id, so local state resets when the selection changes.
   const [value, setValue] = React.useState(initial);
-  React.useEffect(() => setValue(initial), [g.id, initial]);
   const commit = async () => {
     if (value === initial) return;
     try {

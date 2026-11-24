@@ -60,7 +60,11 @@ function SortableSwatch({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: swatch.id, disabled });
   const [draft, setDraft] = React.useState(swatch.hex);
-  React.useEffect(() => setDraft(swatch.hex), [swatch.hex]);
+  const [syncedHex, setSyncedHex] = React.useState(swatch.hex);
+  if (syncedHex !== swatch.hex) {
+    setSyncedHex(swatch.hex);
+    setDraft(swatch.hex);
+  }
   const commit = (v: string) => {
     if (isHex(v)) onChange({ ...swatch, hex: normalizeHex(v) });
     else setDraft(swatch.hex);

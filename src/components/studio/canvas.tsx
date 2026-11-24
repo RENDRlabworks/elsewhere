@@ -235,8 +235,12 @@ export function Canvas({ session }: { session: StudioSession }) {
   const [scale, setScale] = React.useState(1);
   const picker = useCollectionPicker();
 
-  React.useEffect(() => setBg(defaultBg), [defaultBg]);
-  React.useEffect(() => setZoom({ mode: "fit" }), [g?.id]);
+  const [seen, setSeen] = React.useState({ bg: defaultBg, id: g?.id });
+  if (seen.bg !== defaultBg || seen.id !== g?.id) {
+    if (seen.bg !== defaultBg) setBg(defaultBg);
+    if (seen.id !== g?.id) setZoom({ mode: "fit" });
+    setSeen({ bg: defaultBg, id: g?.id });
+  }
 
   const idx = g ? gens.findIndex((x) => x.id === g.id) : -1;
   const done = !!g && g.status === "completed" && !!g.assetId;

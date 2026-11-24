@@ -32,6 +32,8 @@ export async function api<T>(path: string, init: Init = {}): Promise<T> {
     throw new ApiError("Network error. Check your connection and try again.", 0, "network");
   }
   if (res.status === 401 && typeof window !== "undefined" && !location.pathname.startsWith("/login")) {
+    // A full navigation clears client caches for the expired session.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
   }
   const isJson = res.headers.get("content-type")?.includes("application/json");

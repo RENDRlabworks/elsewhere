@@ -58,10 +58,12 @@ export function ImageViewer({
   const fit = cw && ch ? Math.min((cw - padding * 2) / width, (ch - padding * 2) / height, 1) : 1;
   const scale = zoom.mode === "fit" ? fit : zoom.scale;
 
-  React.useEffect(() => setLoaded(false), [src]);
-  React.useEffect(() => {
+  const [prev, setPrev] = React.useState({ src, mode: zoom.mode });
+  if (prev.src !== src || prev.mode !== zoom.mode) {
+    if (prev.src !== src) setLoaded(false);
     if (zoom.mode === "fit") setOffset({ x: 0, y: 0 });
-  }, [zoom.mode, src]);
+    setPrev({ src, mode: zoom.mode });
+  }
   React.useEffect(() => {
     onZoomChange(zoom, scale);
     // eslint-disable-next-line react-hooks/exhaustive-deps

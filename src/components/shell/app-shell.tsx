@@ -145,6 +145,8 @@ function Sidebar() {
                   className="text-text-muted"
                   onClick={async () => {
                     await api("/api/auth/signout", { method: "POST" });
+                    // Full navigation so no signed-in client state survives sign-out.
+                    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                     location.href = "/login";
                   }}
                 >

@@ -96,10 +96,6 @@ export function ReviewPanel({ g, reviews }: { g: Generation | null; reviews: Ima
   const [scores, setScores] = React.useState<Partial<Record<ReviewCriterion, number>>>({});
   const [summary, setSummary] = React.useState("");
   const [busy, setBusy] = React.useState<"manual" | "ai" | null>(null);
-  React.useEffect(() => {
-    setScores({});
-    setSummary("");
-  }, [g?.id]);
 
   if (!g || g.status !== "completed") return <EmptyState title="Nothing to review" description="Select a completed image to assess it against its Style DNA." />;
 

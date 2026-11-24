@@ -57,6 +57,9 @@ export function CompositionPad({ value, aspectRatio, onChange, disabled, hasSubj
           role="slider"
           tabIndex={disabled ? -1 : 0}
           aria-label="Subject position in frame"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(value.x * 100)}
           aria-valuetext={hasSubject ? positionLanguage(value.x, value.y) : "No subject"}
           aria-disabled={disabled}
           onKeyDown={disabled ? undefined : onKey}

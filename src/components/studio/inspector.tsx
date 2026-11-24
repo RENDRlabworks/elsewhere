@@ -27,10 +27,10 @@ export function Inspector({ session }: { session: StudioSession }) {
         <PromptPanel session={session} />
       </TabsContent>
       <TabsContent value="details" className="min-h-0 flex-1 overflow-y-auto">
-        <DetailsPanel g={detail?.generation ?? g} detail={detail} />
+        <DetailsPanel key={g?.id ?? "none"} g={detail?.generation ?? g} detail={detail} />
       </TabsContent>
       <TabsContent value="review" className="min-h-0 flex-1 overflow-y-auto">
-        <ReviewPanel g={g} reviews={detail?.reviews ?? []} />
+        <ReviewPanel key={g?.id ?? "none"} g={g} reviews={detail?.reviews ?? []} />
       </TabsContent>
     </Tabs>
   );

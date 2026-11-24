@@ -107,6 +107,21 @@ export function useStudioSession() {
     };
   }, [prefs]);
 
+  const applySuggestion = React.useCallback((s: string) => {
+    const [kind, key] = s.split(":");
+    const st = useStudio.getState();
+    if (kind === "composition") st.update((sc) => ({ composition: { ...sc.composition, preset: key as CompositionPreset } }));
+    else if (kind === "anchor" && key in ANCHOR_POINTS) {
+      const [x, y] = ANCHOR_POINTS[key as Exclude<Anchor, "custom">];
+      st.update((sc) => ({ composition: { ...sc.composition, anchor: key as Anchor, x, y } }));
+    } else if (kind === "angle") st.update((sc) => ({ composition: { ...sc.composition, cameraAngle: key as CameraAngle } }));
+    toast.success("Applied an underused composition suggestion");
+  }, []);
+
+  /** Page commands, filled in after render so they always see current state. */
+  const commands = React.useRef<Record<string, () => void>>({});
+  const runCommandLocal = React.useCallback((name: string) => commands.current[name]?.(), []);
+
   React.useEffect(() => {
     if (!prefs) return;
     const key = params.toString();
@@ -165,21 +180,11 @@ export function useStudioSession() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, prefs?.lastSceneId, !!prefs]);
 
-  function applySuggestion(s: string) {
-    const [kind, key] = s.split(":");
-    const st = useStudio.getState();
-    if (kind === "composition") st.update((sc) => ({ composition: { ...sc.composition, preset: key as CompositionPreset } }));
-    else if (kind === "anchor" && key in ANCHOR_POINTS) {
-      const [x, y] = ANCHOR_POINTS[key as Exclude<Anchor, "custom">];
-      st.update((sc) => ({ composition: { ...sc.composition, anchor: key as Anchor, x, y } }));
-    } else if (kind === "angle") st.update((sc) => ({ composition: { ...sc.composition, cameraAngle: key as CameraAngle } }));
-    toast.success("Applied an underused composition suggestion");
-  }
-
   /* ------------------------------------------------------------------ */
   /* Autosave                                                            */
   /* ------------------------------------------------------------------ */
 
+  const lastSceneId = prefs?.lastSceneId;
   const save = React.useCallback(async (): Promise<string | null> => {
     if (savingRef.current) await savingRef.current;
     const st = useStudio.getState();
@@ -199,7 +204,7 @@ export function useStudioSession() {
         }
         useStudio.getState().markSaved(saved, revisionAtSave);
         if (forked) toast("Editing a working copy", { description: "The original Volume I scene record is preserved." });
-        if (saved.id !== prefs?.lastSceneId) void updatePreferences({ lastSceneId: saved.id }).catch(() => {});
+        if (saved.id !== lastSceneId) void updatePreferences({ lastSceneId: saved.id }).catch(() => {});
         invalidate("/api/scenes");
         return saved.id;
       } catch (err) {
@@ -211,7 +216,7 @@ export function useStudioSession() {
     })();
     savingRef.current = p;
     return p;
-  }, [prefs?.lastSceneId, updatePreferences]);
+  }, [lastSceneId, updatePreferences]);
 
   const autosave = prefs?.autosave;
   React.useEffect(() => {
@@ -423,8 +428,8 @@ export function useStudioSession() {
   /* Commands from the palette                                           */
   /* ------------------------------------------------------------------ */
 
-  const commands = React.useRef<Record<string, () => void>>({});
-  commands.current = {
+  React.useEffect(() => {
+    commands.current = {
     generate: () => void generate(),
     randomize: () => void randomize(),
     "new-scene": () => void newScene(),
@@ -435,10 +440,8 @@ export function useStudioSession() {
       const active = useApp.getState().data?.preferences.activeStyleProfileId;
       if (active) useStudio.getState().update({ styleProfileId: active });
     },
-  };
-  function runCommandLocal(name: string) {
-    commands.current[name]?.();
-  }
+    };
+  });
   React.useEffect(() => {
     const offs = Object.keys(commands.current).map((name) => onCommand(name, () => commands.current[name]?.()));
     return () => offs.forEach((o) => o());
