@@ -76,7 +76,7 @@ test("locked Style DNA attributes cannot be changed through the API", async ({ r
 
 test("explore generates structured concepts and sends one to the Studio", async ({ page }) => {
   await page.goto("/explore");
-  await page.getByRole("button", { name: /Randomize everything/i }).first().click();
+  await page.getByRole("button", { name: /^Randomize all/i }).first().click();
   await page.getByRole("button", { name: /Send to Studio/i }).first().click();
   await expect(page).toHaveURL(/\/studio/);
   await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
