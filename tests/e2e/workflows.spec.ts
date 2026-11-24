@@ -161,6 +161,16 @@ test("explore generates structured concepts and sends one to the Studio", async 
   await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
 });
 
+test("live previews can be set in Settings", async ({ page }) => {
+  await page.goto("/settings");
+  const group = page.getByRole("radiogroup", { name: "Live previews per image" });
+  await expect(group).toBeVisible();
+  await group.getByText("3", { exact: true }).click();
+  await expect.poll(async () => (await (await page.request.get("/api/bootstrap")).json()).preferences.defaults.partialImages).toBe(3);
+  await group.getByText("2", { exact: true }).click();
+  await expect.poll(async () => (await (await page.request.get("/api/bootstrap")).json()).preferences.defaults.partialImages).toBe(2);
+});
+
 test("command palette navigates", async ({ page }) => {
   await openStudio(page);
   await page.keyboard.press("Control+k");

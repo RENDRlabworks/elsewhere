@@ -73,6 +73,8 @@ export type ProviderRequest = {
   /** Source image for variations and refinements; sent as the first input image. */
   source?: InputImage | null;
   operation: "generate" | "variation" | "refine";
+  /** Partial images to stream before the final one (0 to 3). Only used when n is 1. */
+  partialImages?: number;
   /** Opaque, non-identifying hash used for provider abuse monitoring. */
   safetyIdentifier?: string;
   /** Structured scene hints. Only the development sketch provider reads these. */
@@ -90,6 +92,9 @@ export type ProviderRequest = {
 
 export type ProviderImage = { data: Buffer; mimeType: string };
 
+/** Called as each partial image arrives while streaming. index is 0-based. */
+export type ProviderHooks = { onPartial?: (partial: { index: number; data: Buffer; mimeType: string }) => void | Promise<void> };
+
 export type ProviderResult = {
   images: ProviderImage[];
   usage?: GenerationUsage;
@@ -106,7 +111,9 @@ export interface ImageProvider {
   configurationHint(): string;
   models(): ImageModelConfig[];
   defaultModel(): string;
-  run(req: ProviderRequest, signal?: AbortSignal): Promise<ProviderResult>;
+  run(req: ProviderRequest, signal?: AbortSignal, hooks?: ProviderHooks): Promise<ProviderResult>;
+  /** Whether this provider can stream partial images for this request. */
+  streamsPartials?(req: Pick<ProviderRequest, "n" | "format" | "model">): boolean;
 }
 
 export class ProviderError extends Error {

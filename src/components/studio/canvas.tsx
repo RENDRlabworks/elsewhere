@@ -35,12 +35,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { IconButton, MetaLabel } from "@/components/common/primitives";
 import { GenerationContextMenu, TileState } from "@/components/generation/generation-tile";
-import { FillLoader } from "@/components/generation/generation-loader";
+import { GenerationProgressFill, useCompletionHold } from "@/components/generation/progress";
 import {
   downloadGeneration,
   isActive,
   setReviewStatus,
-  STATUS_LABEL,
   toggleFavorite,
   useCollectionPicker,
 } from "@/components/generation/actions";
@@ -184,25 +183,38 @@ function EmptyCanvas({ session }: { session: StudioSession }) {
   );
 }
 
-function PendingCanvas({ g, session }: { g: Generation; session: StudioSession }) {
+function PendingCanvas({ g, session, holding }: { g: Generation; session: StudioSession; holding?: boolean }) {
   const elapsed = useElapsed(g.createdAt, isActive(g.status));
-  const active = isActive(g.status);
+  const active = isActive(g.status) || !!holding;
   const ratio = g.width && g.height ? `${g.width} / ${g.height}` : "4 / 5";
   return (
     <div className="flex h-full items-center justify-center p-8">
       <div className="relative flex max-h-full max-w-full flex-col items-center justify-center rounded-sm border border-border bg-surface" style={{ aspectRatio: ratio, height: "80%" }}>
         {active ? (
-          <FillLoader id={g.id} inset={24}>
-            <div className="absolute inset-x-0 bottom-4 flex justify-center">
-              <div className="flex items-center gap-3 rounded-md border border-border bg-surface/90 py-1 pr-1 pl-3 backdrop-blur-sm">
-                <span className="label-meta">{STATUS_LABEL[g.status]}</span>
-                <span className="font-mono text-[12px] text-text-muted tabular-nums">{elapsed}</span>
-                <Button size="sm" variant="ghost" onClick={() => void session.cancel(g)}>
-                  Cancel
-                </Button>
+          <GenerationProgressFill
+            g={g}
+            inset={24}
+            caption={({ percent, label }) => (
+              <div className="absolute inset-x-0 bottom-4 flex justify-center">
+                <div className="flex items-center gap-3 rounded-md border border-border bg-surface/90 py-1 pr-1 pl-3 backdrop-blur-sm">
+                  <span className="label-meta">{label}</span>
+                  {percent != null ? (
+                    <span className="font-mono text-[12px] text-foreground tabular-nums" title="Estimated from your recent images with these settings and the previews received so far">
+                      {g.status === "completed" ? "100%" : `About ${percent}%`}
+                    </span>
+                  ) : null}
+                  <span className="font-mono text-[12px] text-text-muted tabular-nums">{elapsed}</span>
+                  {isActive(g.status) ? (
+                    <Button size="sm" variant="ghost" onClick={() => void session.cancel(g)}>
+                      Cancel
+                    </Button>
+                  ) : (
+                    <span className="w-2" />
+                  )}
+                </div>
               </div>
-            </div>
-          </FillLoader>
+            )}
+          />
         ) : (
           <div className="relative flex flex-col items-center gap-3 px-6 text-center">
             <TileState status={g.status} error={g.errorMessage} />
@@ -244,7 +256,8 @@ export function Canvas({ session }: { session: StudioSession }) {
   }
 
   const idx = g ? gens.findIndex((x) => x.id === g.id) : -1;
-  const done = !!g && g.status === "completed" && !!g.assetId;
+  const holding = useCompletionHold(g ?? { id: "", status: "failed" });
+  const done = !!g && g.status === "completed" && !!g.assetId && !holding;
   const compareWith = compareId
     ? gens.find((x) => x.id === compareId)
     : ((g?.parentId ? gens.find((x) => x.id === g.parentId) : undefined) ?? gens[idx + 1] ?? gens[idx - 1]);
@@ -403,7 +416,7 @@ export function Canvas({ session }: { session: StudioSession }) {
         {!gens.length ? (
           <EmptyCanvas session={session} />
         ) : !g ? null : !done ? (
-          <PendingCanvas g={g} session={session} />
+          <PendingCanvas g={g} session={session} holding={holding} />
         ) : compareMode !== "off" && compareWith?.assetId ? (
           compareMode === "slider" ? (
             <CompareSlider before={assetSrc(compareWith.assetId, "full")!} after={full} width={g.width ?? 1024} height={g.height ?? 1280} />
@@ -492,7 +505,7 @@ export function Canvas({ session }: { session: StudioSession }) {
                   <img src={assetSrc(x.assetId)!} alt="" className="size-full object-cover" loading="lazy" />
                 ) : (
                   <span className="flex size-full items-center justify-center bg-surface">
-                    {isActive(x.status) ? <FillLoader id={x.id} inset={3} /> : <X className="size-3 text-danger" />}
+                    {isActive(x.status) ? <GenerationProgressFill g={x} inset={3} /> : <X className="size-3 text-danger" />}
                   </span>
                 )}
                 {x.kind !== "generate" ? <span className="absolute bottom-0.5 left-0.5 rounded-[2px] bg-black/70 px-1 font-mono text-[8.5px] text-text-secondary uppercase">{x.kind === "variation" ? "var" : x.kind}</span> : null}

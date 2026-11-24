@@ -412,6 +412,24 @@ export type GenerationUsage = {
   textInputTokens?: number;
 };
 
+/**
+ * Live progress for a generation while it runs. The image API reports no percentage,
+ * so the client estimates one from `expectedMs` (this user's recent runs with the same
+ * settings) and raises it to fixed checkpoints as partial images arrive. Cleared when
+ * the generation finishes.
+ */
+export type GenerationProgress = {
+  startedAt: string;
+  /** Median duration of recent comparable runs; null when there is no history yet. */
+  expectedMs: number | null;
+  /** How many comparable runs the estimate is based on. */
+  samples: number;
+  partialsRequested: number;
+  partialsReceived: number;
+  /** Small, low-quality data URL of the latest partial image, for a blurred preview. */
+  preview: string | null;
+};
+
 export type Generation = {
   id: string;
   userId: string;
@@ -454,6 +472,8 @@ export type Generation = {
   paletteHexes: string[];
   variationIndex: number;
   isDevPlaceholder: boolean;
+  /** Only present while the image is being generated. */
+  progress?: GenerationProgress | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -666,6 +686,8 @@ export const preferencesSchema = z.object({
       provider: z.string().default("openai"),
       model: z.string().nullable().default(null),
       textModel: z.string().nullable().default(null),
+      /** Partial images streamed per single-image request, for live previews. 0 turns them off. */
+      partialImages: z.number().int().min(0).max(3).default(2),
     })
     .default({
       styleProfileId: null,
@@ -676,6 +698,7 @@ export const preferencesSchema = z.object({
       provider: "openai",
       model: null,
       textModel: null,
+      partialImages: 2,
     }),
   limits: z
     .object({
