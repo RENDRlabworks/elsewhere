@@ -4,14 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, ListChecks, Palette, RotateCcw, SearchX, Star, Trash2, X } from "lucide-react";
+import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, ListChecks, Palette, RotateCcw, SearchX, Trash2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { api, assetSrc, errorMessage, newIdempotencyKey } from "@/lib/client/api";
 import type { CollectionSummary } from "@/lib/services/collections";
 import { matchesCollection, plural } from "@/components/collections/lib";
 import { invalidate, useResource } from "@/lib/client/resource";
 import { useApp, usePreferences } from "@/stores/app";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, IconButton } from "@/components/common/primitives";
@@ -265,7 +265,6 @@ export function ArchiveView() {
               {Array.from({ length: 18 }, (_, i) => (
                 <div key={i}>
                   <Skeleton className="aspect-[4/5] w-full rounded-md" />
-                  {density !== "compact" ? <Skeleton className="mt-2 h-3 w-2/3" /> : null}
                 </div>
               ))}
             </Grid>
@@ -320,7 +319,6 @@ export function ArchiveView() {
                     key={g.id}
                     g={g}
                     priority={i < 12}
-                    showCaption={density !== "compact"}
                     selected={visibleSelected.has(g.id)}
                     onToggleSelect={(e) => toggle(g.id, e)}
                     onOpen={() => router.push(`/studio?generation=${g.id}`)}
@@ -373,7 +371,7 @@ export function ArchiveView() {
 function Grid({ min, children }: { min: number; children: React.ReactNode }) {
   return (
     // At least two columns on a phone, however roomy the chosen density.
-    <div className="grid gap-x-3 gap-y-5 md:gap-x-4 md:gap-y-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${min}px, calc(50% - 6px)), 1fr))` }}>
+    <div className="grid gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${min}px, calc(50% - 6px)), 1fr))` }}>
       {children}
     </div>
   );
@@ -396,36 +394,21 @@ function ArchiveCell({
   selected,
   onToggleSelect,
   onOpen,
-  showCaption,
   priority,
 }: {
   g: Generation;
   selected: boolean;
   onToggleSelect: (e: { shiftKey: boolean }) => void;
   onOpen: () => void;
-  showCaption: boolean;
   priority?: boolean;
 }) {
   const failed = g.status === "failed" || g.status === "cancelled";
   return (
     <div>
       <div className="relative">
-        <GenerationTile generation={g} aspect="portrait" showMeta={false} selectable selected={selected} onToggleSelect={onToggleSelect} onOpen={onOpen} priority={priority} />
+        <GenerationTile generation={g} aspect="portrait" selectable selected={selected} onToggleSelect={onToggleSelect} onOpen={onOpen} priority={priority} />
         {failed && g.jobId ? <RetryButton jobId={g.jobId} /> : null}
       </div>
-      {showCaption ? (
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className={cn("truncate text-[12px]", g.reviewStatus === "rejected" ? "text-text-muted" : "text-text-secondary")}>{g.title}</span>
-          <span className="flex shrink-0 items-center gap-2 text-[11px] text-text-muted">
-            {g.rating ? (
-              <span className="flex items-center gap-0.5">
-                <Star className="size-3" /> {g.rating}
-              </span>
-            ) : null}
-            <span className="tabular-nums">{formatDate(g.createdAt, { month: "short", day: "numeric" })}</span>
-          </span>
-        </div>
-      ) : null}
     </div>
   );
 }
