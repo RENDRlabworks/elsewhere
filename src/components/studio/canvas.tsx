@@ -11,7 +11,6 @@ import {
   FolderPlus,
   Heart,
   ImageUpscale,
-  LoaderCircle,
   Maximize,
   Minimize,
   Info,
@@ -151,7 +150,7 @@ function DirectionPopover({
   );
 }
 
-function EmptyCanvas({ session }: { session: StudioSession }) {
+function EmptyCanvas() {
   const scene = useStudio((s) => s.scene);
   const [w, h] = scene.output.aspectRatio.split(":").map(Number);
   const c = scene.composition;
@@ -176,10 +175,6 @@ function EmptyCanvas({ session }: { session: StudioSession }) {
           Pick a starting image and set the scene in Direct. The frame above previews the subject&apos;s placement and palette.
         </div>
       </div>
-      <Button onClick={() => void session.generate()} disabled={session.generating}>
-        {session.generating ? <LoaderCircle className="animate-spin" /> : <Sparkles />} Generate
-        <Kbd className="ml-1 bg-black/10 text-primary-foreground">⌘↵</Kbd>
-      </Button>
     </div>
   );
 }
@@ -427,7 +422,7 @@ export function Canvas({ session }: { session: StudioSession }) {
       {/* Stage */}
       <div className={cn("relative min-h-0 flex-1", CANVAS_BACKGROUNDS[bg]?.className)}>
         {!gens.length ? (
-          <EmptyCanvas session={session} />
+          <EmptyCanvas />
         ) : !g ? null : !done ? (
           <PendingCanvas g={g} session={session} holding={holding} />
         ) : compareMode !== "off" && compareWith?.assetId ? (
