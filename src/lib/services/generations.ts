@@ -587,11 +587,13 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
       costUsd: cost,
       estimated,
     });
-    await setJob(ctx, jobId, { status: "completed", finishedAt: new Date().toISOString(), error: null });
+    // Clear progress before the job reads as finished, so nothing sees a finished job with live progress.
     await writeProgress(ctx, jobId, null);
+    await setJob(ctx, jobId, { status: "completed", finishedAt: new Date().toISOString(), error: null });
   } catch (err) {
     const cancelled = controller.signal.aborted || (await isCancelled(ctx, jobId).catch(() => false));
     const message = cancelled ? "Cancelled" : err instanceof Error ? err.message : String(err);
+    await writeProgress(ctx, jobId, null);
     await setJob(ctx, jobId, {
       status: cancelled ? "cancelled" : "failed",
       error: message,
@@ -600,7 +602,6 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
     await gens
       .updateWhere({ jobId, status: { in: [...ACTIVE] } }, { status: cancelled ? "cancelled" : "failed", errorMessage: message })
       .catch(() => {});
-    await writeProgress(ctx, jobId, null);
     if (!cancelled) {
       const detail =
         err instanceof ProviderError
