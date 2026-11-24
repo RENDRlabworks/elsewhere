@@ -1,9 +1,11 @@
 import "server-only";
 import { after } from "next/server";
+import sharp from "sharp";
 import { createHash } from "node:crypto";
 import {
   type Generation,
   type GenerationJob,
+  type GenerationProgress,
   type GenerationRequest,
   type ImageReview,
   type Preferences,
@@ -66,8 +68,13 @@ export type GenerationPlan = {
   sourceGenerationId: string | null;
   estimateUsd: number | null;
   estimateBasis: "provider-pricing" | "recent-average" | "free" | "unknown";
+  /** Partial images to stream for a live preview; 0 when off or not supported. */
+  partialImages: number;
   notes: string[];
 };
+
+/** OpenAI bills each streamed partial image as 100 extra image output tokens. */
+export const PARTIAL_IMAGE_TOKENS = 100;
 
 function startOfDay() {
   const d = new Date();
@@ -213,6 +220,11 @@ export async function planGeneration(ctx: ServerContext, req: GenerationRequest)
     }
   }
 
+  const partialImages = provider.streamsPartials?.({ n, format, model: model.id }) ? (prefs.defaults.partialImages ?? 2) : 0;
+  if (partialImages && estimateUsd != null && model.pricing?.kind === "per-token") {
+    estimateUsd += (partialImages * PARTIAL_IMAGE_TOKENS * model.pricing.imageOutputPerM) / 1_000_000;
+  }
+
   return {
     provider: provider.id,
     model,
@@ -231,6 +243,7 @@ export async function planGeneration(ctx: ServerContext, req: GenerationRequest)
     sourceGenerationId,
     estimateUsd,
     estimateBasis,
+    partialImages,
     notes,
   };
 }
@@ -389,15 +402,79 @@ async function isCancelled(ctx: ServerContext, jobId: string) {
   return (await ctx.db.table("generation_jobs").get(jobId))?.status === "cancelled";
 }
 
+/**
+ * How long this request should take, from this user's own history: the median of the
+ * most recent completed runs with the same provider, model, quality, image count and
+ * input kind, at the same size if there are enough, otherwise scaled from other sizes.
+ */
+export async function expectedDuration(ctx: ServerContext, plan: GenerationPlan): Promise<{ ms: number | null; samples: number }> {
+  const recent = await ctx.db.table("generations").list({
+    where: { provider: plan.provider, model: plan.model.id, status: "completed", durationMs: { notNull: true } },
+    order: [{ field: "createdAt", ascending: false }],
+    limit: 80,
+  });
+  const withInputs = !!plan.sourceGenerationId || plan.referencesSubmitted;
+  const comparable = recent.filter(
+    (g) =>
+      g.source === "generated" &&
+      (g.outputSettings?.quality ?? null) === plan.quality &&
+      (g.outputSettings?.count ?? 1) === plan.n &&
+      (g.kind !== "generate" || g.referencesSubmitted) === withInputs,
+  );
+  const median = (xs: number[]) => {
+    const v = [...xs].sort((a, b) => a - b);
+    return v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2;
+  };
+  const sameSize = comparable.filter((g) => g.width === plan.width && g.height === plan.height).slice(0, 9);
+  if (sameSize.length >= 2) return { ms: Math.round(median(sameSize.map((g) => g.durationMs!))), samples: sameSize.length };
+  const pixels = plan.width * plan.height;
+  const scaled = comparable
+    .filter((g) => g.width && g.height)
+    .slice(0, 9)
+    .map((g) => g.durationMs! * Math.sqrt(pixels / (g.width! * g.height!)));
+  if (scaled.length >= 3) return { ms: Math.round(median(scaled)), samples: scaled.length };
+  return { ms: null, samples: 0 };
+}
+
+/**
+ * Progress is written best effort. A Supabase database that has not run the progress
+ * migration yet rejects the column; generation then carries on without live progress.
+ */
+const progressState = globalThis as unknown as { __elsewhereProgressOff?: boolean };
+async function writeProgress(ctx: ServerContext, jobId: string, progress: GenerationProgress | null, onlyFirst = false) {
+  if (progressState.__elsewhereProgressOff) return;
+  try {
+    const where = onlyFirst ? { jobId, variationIndex: 0 } : { jobId };
+    await ctx.db.table("generations").updateWhere(where, { progress });
+  } catch (err) {
+    if (/progress/i.test(err instanceof Error ? err.message : String(err))) {
+      progressState.__elsewhereProgressOff = true;
+      console.warn("[elsewhere] live progress is off: run the generation progress migration in Supabase to turn it on.");
+    }
+  }
+}
+
 export async function processJob(ctx: ServerContext, jobId: string, plan: GenerationPlan) {
   const gens = ctx.db.table("generations");
   const started = Date.now();
+  let partialsReceived = 0;
   const controller = new AbortController();
   aborts.set(jobId, controller);
   try {
     if (await isCancelled(ctx, jobId)) return;
-    await setJob(ctx, jobId, { status: "generating", startedAt: new Date().toISOString(), attempts: 1 });
+    const startedAt = new Date().toISOString();
+    await setJob(ctx, jobId, { status: "generating", startedAt, attempts: 1 });
     await gens.updateWhere({ jobId }, { status: "generating" });
+    const expected = await expectedDuration(ctx, plan).catch(() => ({ ms: null, samples: 0 }));
+    let progress: GenerationProgress = {
+      startedAt,
+      expectedMs: expected.ms,
+      samples: expected.samples,
+      partialsRequested: plan.partialImages,
+      partialsReceived: 0,
+      preview: null,
+    };
+    await writeProgress(ctx, jobId, progress);
 
     const references: InputImage[] = [];
     for (const [i, refId] of plan.referenceIds.entries()) {
@@ -431,6 +508,7 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
         source,
         operation: (job?.operation ?? "generate") as ProviderRequest["operation"],
         safetyIdentifier: createHash("sha256").update(ctx.userId).digest("hex").slice(0, 32),
+        partialImages: plan.partialImages,
         hints: scene
           ? {
               title: scene.title,
@@ -445,14 +523,34 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
           : undefined,
       },
       controller.signal,
+      {
+        // Each partial image becomes a small preview and a progress checkpoint.
+        onPartial: async ({ index, data }) => {
+          try {
+            const small = await sharp(data).resize(320, 320, { fit: "inside" }).webp({ quality: 55 }).toBuffer();
+            progress = { ...progress, partialsReceived: Math.max(progress.partialsReceived, index + 1), preview: `data:image/webp;base64,${small.toString("base64")}` };
+            await writeProgress(ctx, jobId, progress, true);
+          } catch {
+            // A preview that fails to process never affects the generation itself.
+          }
+        },
+      },
     );
+    partialsReceived = progress.partialsReceived;
 
     if (await isCancelled(ctx, jobId)) return;
     await setJob(ctx, jobId, { status: "processing" });
     await gens.updateWhere({ jobId }, { status: "processing" });
 
     const durationMs = Date.now() - started;
-    const { cost, estimated } = plan.provider === "dev" ? { cost: 0, estimated: false } : costFromUsage(plan.model, result.usage);
+    const usageCost = plan.provider === "dev" ? { cost: 0, estimated: false } : costFromUsage(plan.model, result.usage);
+    // Partial images are billed as extra output tokens that the final usage may not include.
+    const partialUsd =
+      plan.provider !== "dev" && partialsReceived && plan.model.pricing?.kind === "per-token"
+        ? (partialsReceived * PARTIAL_IMAGE_TOKENS * plan.model.pricing.imageOutputPerM) / 1_000_000
+        : 0;
+    const cost = usageCost.cost != null ? usageCost.cost + partialUsd : null;
+    const estimated = usageCost.estimated || partialUsd > 0;
     const perImageCost = cost != null ? cost / result.images.length : null;
     const rows = await gens.list({ where: { jobId }, order: [{ field: "variationIndex" }] });
 
@@ -490,6 +588,7 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
       estimated,
     });
     await setJob(ctx, jobId, { status: "completed", finishedAt: new Date().toISOString(), error: null });
+    await writeProgress(ctx, jobId, null);
   } catch (err) {
     const cancelled = controller.signal.aborted || (await isCancelled(ctx, jobId).catch(() => false));
     const message = cancelled ? "Cancelled" : err instanceof Error ? err.message : String(err);
@@ -501,6 +600,7 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
     await gens
       .updateWhere({ jobId, status: { in: [...ACTIVE] } }, { status: cancelled ? "cancelled" : "failed", errorMessage: message })
       .catch(() => {});
+    await writeProgress(ctx, jobId, null);
     if (!cancelled) {
       const detail =
         err instanceof ProviderError

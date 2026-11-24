@@ -61,11 +61,14 @@ export function GenerationLoader({
   id,
   size = 70,
   label = "Generating image",
+  value = null,
   className,
 }: {
   id: string;
   size?: number | "fill";
   label?: string;
+  /** 0 to 100 fills the grid to match; null plays the waiting motion. */
+  value?: number | null;
   className?: string;
 }) {
   const [pattern] = React.useState(() => patternFor(id));
@@ -77,6 +80,7 @@ export function GenerationLoader({
       label={label}
       data-pattern={pattern}
       fill={fill ? "" : undefined}
+      value={value == null ? undefined : String(value)}
       className={cn("shrink-0", fill && "block size-full", className)}
       style={{ ...DEFACTO_TOKENS, ...(fill ? {} : { width: size }) }}
     />
@@ -84,10 +88,24 @@ export function GenerationLoader({
 }
 
 /** A loader covering a box (a tile, thumbnail or the canvas frame), with an optional caption. */
-export function FillLoader({ id, inset = 12, children }: { id: string; inset?: number; children?: React.ReactNode }) {
+export function FillLoader({
+  id,
+  inset = 12,
+  value = null,
+  backdrop,
+  children,
+}: {
+  id: string;
+  inset?: number;
+  value?: number | null;
+  /** Drawn behind the dots, such as a blurred partial image. */
+  backdrop?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
-    <div className="absolute inset-0 bg-surface" style={{ padding: inset }}>
-      <GenerationLoader id={id} size="fill" />
+    <div className="absolute inset-0 overflow-hidden bg-surface" style={{ padding: inset }}>
+      {backdrop}
+      <GenerationLoader id={id} size="fill" value={value} className="relative" />
       {children}
     </div>
   );

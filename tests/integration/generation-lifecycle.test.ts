@@ -16,7 +16,7 @@ const { createLocalDatabase } = await import("@/lib/data/local");
 const { createLocalStorage } = await import("@/lib/storage");
 const { toSnake } = await import("@/lib/data/supabase");
 const { ensureBootstrap } = await import("@/lib/services/bootstrap");
-const { startGeneration, cancelJob, deleteGenerationPermanently, updateGenerationMeta } = await import("@/lib/services/generations");
+const { startGeneration, cancelJob, deleteGenerationPermanently, updateGenerationMeta, expectedDuration, planGeneration } = await import("@/lib/services/generations");
 const { saveImageAsset } = await import("@/lib/services/assets");
 const { referenceFromGeneration, deleteAssetIfUnused } = await import("@/lib/services/references");
 const { generateFieldIdeas } = await import("@/lib/services/assist");
@@ -317,6 +317,57 @@ describe("style references from existing images", () => {
   });
 });
 
+describe("live progress", () => {
+  const request = (over: Record<string, unknown> = {}) => ({
+    idempotencyKey: idem(),
+    sceneId: null,
+    scene: scene({ output: { count: 1 }, ...over }),
+    operation: "generate" as const,
+    parentGenerationId: null,
+    instruction: "",
+    useReferences: true,
+    confirmedCost: false,
+  });
+
+  it("streams partial previews while generating and clears progress when done", async () => {
+    const res = await startGeneration(ctx, request());
+    expect(res.plan?.partialImages).toBe(2);
+    const id = res.generations[0].id;
+    let seen: import("@/lib/domain/schemas").GenerationProgress | null = null;
+    const start = Date.now();
+    while (Date.now() - start < 10_000) {
+      const g = (await ctx.db.table("generations").get(id))!;
+      if (g.progress?.partialsReceived) seen = g.progress;
+      if (g.status === "completed") break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(seen?.partialsRequested).toBe(2);
+    expect(seen?.partialsReceived).toBeGreaterThanOrEqual(1);
+    expect(seen?.preview).toMatch(/^data:image\/webp;base64,/);
+    expect(seen!.preview!.length).toBeLessThan(60_000);
+    const job = await waitForJob(res.job.id);
+    expect(job.status).toBe("completed");
+    expect((await ctx.db.table("generations").get(id))!.progress).toBeNull();
+  });
+
+  it("does not stream partials for multi-image requests", async () => {
+    const plan = await planGeneration(ctx, request({ output: { count: 2 } }));
+    expect(plan.partialImages).toBe(0);
+  });
+
+  it("estimates duration from the user's own comparable runs", async () => {
+    for (let i = 0; i < 2; i++) await waitForJob((await startGeneration(ctx, request())).job.id);
+    const plan = await planGeneration(ctx, request());
+    const est = await expectedDuration(ctx, plan);
+    expect(est.samples).toBeGreaterThanOrEqual(2);
+    expect(est.ms).toBeGreaterThan(500);
+    expect(est.ms).toBeLessThan(10_000);
+    // A quality with no history has no estimate.
+    const other = await planGeneration(ctx, request({ output: { count: 1, quality: "low" } }));
+    expect((await expectedDuration(ctx, other)).ms).toBeNull();
+  });
+});
+
 describe("field ideas", () => {
   it("falls back to built-in ideas without an OpenAI key, even when AI is requested", async () => {
     const res = await generateFieldIdeas(ctx, { field: "lighting", scene: scene(), character: null, count: 4, useAi: true });
@@ -426,6 +477,7 @@ describe("schema parity", () => {
       const block = sql.match(new RegExp(`create table public\\.${t} \\(([\\s\\S]*?)\\n\\);`))?.[1];
       expect(block, `table ${t} in migration`).toBeTruthy();
       const columns = new Set([...block!.matchAll(/^\s+([a-z_]+)\s/gm)].map((m) => m[1]));
+      for (const m of sql.matchAll(new RegExp(`alter table public\\.${t} add column (?:if not exists )?([a-z_]+)`, "g"))) columns.add(m[1]);
       const rows = await ctx.db.table(t).list({ limit: 5 });
       expect(rows.length, `sample rows for ${t}`).toBeGreaterThan(0);
       for (const row of rows) for (const k of Object.keys(row)) expect(columns.has(toSnake(k)), `${t}.${toSnake(k)}`).toBe(true);

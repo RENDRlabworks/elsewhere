@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { devProviderEnabled } from "@/lib/server/env";
 import { luminance } from "@/lib/palette/color";
 import { createRng } from "@/lib/explore/engine";
-import type { ImageModelConfig, ImageProvider, ProviderRequest, ProviderResult } from "./types";
+import type { ImageModelConfig, ImageProvider, ProviderHooks, ProviderRequest, ProviderResult } from "./types";
 
 /**
  * Development sketch provider.
@@ -109,7 +109,20 @@ export const devSketchProvider: ImageProvider = {
   configurationHint: () => "Enabled automatically in local mode, or with ELSEWHERE_DEV_PROVIDER=1.",
   models: () => [MODEL],
   defaultModel: () => MODEL.id,
-  async run(req: ProviderRequest): Promise<ProviderResult> {
+  streamsPartials: (req) => req.n === 1,
+  async run(req: ProviderRequest, signal?: AbortSignal, hooks?: ProviderHooks): Promise<ProviderResult> {
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    // Partial images, like a streamed provider: progressively sharper low-resolution sketches.
+    const partials = hooks?.onPartial && req.n === 1 ? Math.max(0, Math.min(3, req.partialImages ?? 0)) : 0;
+    if (partials) {
+      const svg = Buffer.from(sketchSvg(req, 0));
+      for (let i = 0; i < partials; i++) {
+        await wait(450);
+        if (signal?.aborted) throw new Error("Cancelled");
+        const data = await sharp(svg).resize(384, 384, { fit: "inside" }).blur(18 - i * 6).png().toBuffer();
+        await hooks!.onPartial!({ index: i, data, mimeType: "image/png" });
+      }
+    }
     const images = [];
     for (let i = 0; i < req.n; i++) {
       const svg = sketchSvg(req, i);
@@ -118,7 +131,7 @@ export const devSketchProvider: ImageProvider = {
       images.push({ data: await img.toBuffer(), mimeType: `image/${req.format === "jpeg" ? "jpeg" : req.format}` });
     }
     // A short, honest delay so lifecycle states are observable during development.
-    await new Promise((r) => setTimeout(r, 600));
+    await wait(partials ? 300 : 600);
     return { images, placeholder: true };
   },
 };

@@ -95,6 +95,24 @@ export function GenerationSection({ prefs }: { prefs: Preferences }) {
         />
       </SettingRow>
 
+      <SettingRow
+        label="Live previews"
+        hint="Rough versions of the image streamed while it generates, shown blurred behind the loader and used to steady the progress estimate. Single-image requests only. OpenAI bills each one as 100 extra image output tokens, about $0.003 at current prices."
+      >
+        <Segmented
+          name="set-partials"
+          label="Live previews per image"
+          value={String(d.partialImages ?? 2)}
+          options={[
+            { value: "0", label: "Off" },
+            { value: "1", label: "1" },
+            { value: "2", label: "2" },
+            { value: "3", label: "3" },
+          ]}
+          onChange={(v) => void save({ partialImages: Number(v) })}
+        />
+      </SettingRow>
+
       <SettingRow label="Provider" hint="Unconfigured providers can be selected but cannot generate until their keys are set on the server." stacked>
         <div role="radiogroup" aria-label="Image provider" className="grid gap-2 sm:grid-cols-2">
           {providers.map((p) => (

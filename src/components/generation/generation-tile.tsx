@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Check, CircleAlert, Heart, LoaderCircle, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
-import { FillLoader } from "./generation-loader";
+import { GenerationProgressFill, useCompletionHold } from "./progress";
 import { cn } from "@/lib/utils";
 import {
   ContextMenu,
@@ -97,7 +97,8 @@ export function GenerationTile({
   showMeta?: boolean;
   priority?: boolean;
 }) {
-  const src = assetSrc(g.assetId, "thumb");
+  const holding = useCompletionHold(g);
+  const src = holding ? null : assetSrc(g.assetId, "thumb");
   const ratio = aspect === "square" ? "1 / 1" : aspect === "portrait" ? "4 / 5" : g.width && g.height ? `${g.width} / ${g.height}` : "4 / 5";
   return (
     <GenerationContextMenu generation={g}>
@@ -127,7 +128,7 @@ export function GenerationTile({
               className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.015]"
             />
           ) : (
-            <TileState id={g.id} status={g.status} error={g.errorMessage} />
+            <TileState g={g} status={g.status} error={g.errorMessage} />
           )}
           {g.isDevPlaceholder ? (
             <span className="absolute top-2 left-2 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] tracking-wide text-warning uppercase">
@@ -180,12 +181,19 @@ export function GenerationTile({
   );
 }
 
-export function TileState({ status, error, id }: { status: Generation["status"]; error?: string | null; id?: string }) {
-  if (isActive(status) && id) {
+export function TileState({ status, error, g }: { status: Generation["status"]; error?: string | null; g?: Generation }) {
+  if (g && (isActive(status) || status === "completed")) {
     return (
-      <FillLoader id={id} inset={12}>
-        <span className="label-meta absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-sm border border-border bg-surface px-2 py-0.5">{STATUS_LABEL[status]}</span>
-      </FillLoader>
+      <GenerationProgressFill
+        g={g}
+        inset={12}
+        caption={({ percent, label }) => (
+          <span className="label-meta absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-sm border border-border bg-surface px-2 py-0.5 whitespace-nowrap tabular-nums">
+            {label}
+            {percent != null ? ` · ${percent}%` : ""}
+          </span>
+        )}
+      />
     );
   }
   if (isActive(status)) {
