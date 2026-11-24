@@ -26,8 +26,8 @@ test("directs a scene, sees the prompt update live, and generates", async ({ pag
   await openStudio(page);
   await page.getByRole("button", { name: "New scene" }).click();
   await page.getByLabel("Title", { exact: true }).fill("The Frozen Hour");
-  await page.getByLabel("Environment").fill("a frozen plain beneath a pale sky");
-  await page.getByLabel("Impossible phenomenon").fill("a single raindrop the size of a house, suspended above the ice");
+  await page.getByLabel("Environment", { exact: true }).fill("a frozen plain beneath a pale sky");
+  await page.getByLabel("Impossible phenomenon", { exact: true }).fill("a single raindrop the size of a house, suspended above the ice");
 
   // Live, deterministic prompt preview reflects scene direction.
   const promptPanel = page.locator("ol").filter({ hasText: "Impossible phenomenon" });
@@ -45,7 +45,7 @@ test("directs a scene, sees the prompt update live, and generates", async ({ pag
 
 test("randomizes only unlocked fields", async ({ page }) => {
   await openStudio(page);
-  const env = page.getByLabel("Environment");
+  const env = page.getByLabel("Environment", { exact: true });
   await env.fill("a locked basalt shore");
   await page.getByRole("button", { name: "Lock Environment" }).click();
   await page.getByRole("button", { name: /Randomize unlocked/ }).click();

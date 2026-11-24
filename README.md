@@ -174,7 +174,9 @@ pnpm test:e2e
 
 - **Unit** (`tests/unit`): prompt assembly (determinism, section order, constraints, templates, overrides, reference honesty, locked markers), scale and position language, style locking and lock-safe merges, the exploration engine (determinism, locks, novelty, history weighting, placement diversity), palette engine and extraction, validation schemas, composition analytics.
 - **Integration** (`tests/integration`): applies the real Supabase migration to an in-process Postgres (PGlite) and verifies RLS for two users, immutability and storage isolation; runs the generation lifecycle in local mode (bootstrap, completion with stored files and thumbnails, idempotency, variations and lineage, cancellation, reject versus permanent delete, cost confirmation, daily limit, monthly budget, storage safety) and checks that every repository field maps to a migration column.
-- **End to end** (`tests/e2e`): Playwright drives the real UI in development mode: bootstrap, directing and generating, live prompt updates, locked randomization, archive search, Style DNA lock enforcement, Explore to Studio and the command palette. Playwright starts its own dev server with an isolated data directory.
+- **End to end** (`tests/e2e`): Playwright drives the real UI against a production build (`next build && next start`) in local mode with an isolated data directory: bootstrap, directing and generating, live prompt updates, locked randomization, archive search, Style DNA lock enforcement, Explore to Studio and the command palette. To use an already installed Chromium instead of Playwright's download, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
+
+Troubleshooting: if `pnpm dev` reloads the page in a loop right after a `pnpm build`, stop the dev server and remove the `.next` directory; the production build and the dev server share it.
 
 ## Implementation phases
 

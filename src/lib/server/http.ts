@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { ZodError, type z } from "zod";
 import { NotFoundError } from "@/lib/data/types";
 
@@ -54,6 +55,8 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
     try {
       return await fn(...args);
     } catch (err) {
+      // Let Next.js control-flow signals (prerender bail-outs, redirects) propagate.
+      unstable_rethrow(err);
       return errorResponse(err);
     }
   };

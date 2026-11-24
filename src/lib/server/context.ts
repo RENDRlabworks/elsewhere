@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import type { Database } from "@/lib/data/types";
 import { createLocalDatabase } from "@/lib/data/local";
 import { createSupabaseDatabase } from "@/lib/data/supabase";
@@ -22,6 +23,8 @@ export type ServerContext = {
  * Throws 401 when Supabase mode is active and nobody is signed in.
  */
 export async function getContext(): Promise<ServerContext> {
+  // User data is always request-time; never let a handler be prerendered at build.
+  await connection();
   const mode = dataMode();
   if (mode === "local") {
     return {

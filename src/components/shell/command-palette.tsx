@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { defaultFilter } from "cmdk";
 import { toast } from "sonner";
 import {
   ClipboardCopy,
@@ -54,7 +55,11 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(""); }} title="Command palette" description="Search commands and destinations" className="sm:max-w-lg">
-      <Command className="rounded-none! bg-transparent">
+      <Command
+        className="rounded-none! bg-transparent"
+        // Free-text archive search is a fallback: rank it below every real command.
+        filter={(value, search, keywords) => (value.startsWith("search archive for") ? 0.0001 : defaultFilter(value, search, keywords))}
+      >
       <CommandInput placeholder="Type a command or search…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No matching commands.</CommandEmpty>
@@ -87,7 +92,7 @@ export function CommandPalette() {
             </CommandItem>
           ))}
           {query.trim() ? (
-            <CommandItem value={`search archive ${query}`} onSelect={() => go(`/archive?q=${encodeURIComponent(query.trim())}`)}>
+            <CommandItem value={`search archive for ${query}`} onSelect={() => go(`/archive?q=${encodeURIComponent(query.trim())}`)}>
               <Search /> Search archive for “{query.trim()}”
             </CommandItem>
           ) : (
