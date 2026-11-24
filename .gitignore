@@ -44,3 +44,4 @@ next-env.d.ts
 .elsewhere-data/
 /test-results/
 /playwright-report/
+!.env.example
