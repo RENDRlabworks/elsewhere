@@ -85,7 +85,11 @@ export async function planGeneration(ctx: ServerContext, req: GenerationRequest)
     throw new HttpError(503, "No image provider is configured. Add OPENAI_API_KEY to enable generation.", "no_provider");
   }
   if (scene.output.provider && provider.id !== scene.output.provider) {
-    notes.push(`${scene.output.provider} is not configured; using ${provider.label}.`);
+    notes.push(
+      provider.id === "dev"
+        ? "No image provider is configured, so a labelled development sketch will be rendered instead."
+        : `${scene.output.provider} is not configured; using ${provider.label}.`,
+    );
   }
   const model = resolveModel(provider, provider.id === scene.output.provider ? scene.output.model || prefs.defaults.model : null);
   if (model.unverified) notes.push(`${model.id} is not in the model registry; conservative settings are used.`);

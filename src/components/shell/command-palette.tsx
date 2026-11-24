@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -52,7 +53,8 @@ export function CommandPalette() {
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(""); }} title="Command palette" description="Search commands and destinations">
+    <CommandDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(""); }} title="Command palette" description="Search commands and destinations" className="sm:max-w-lg">
+      <Command className="rounded-none! bg-transparent">
       <CommandInput placeholder="Type a command or search…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No matching commands.</CommandEmpty>
@@ -128,6 +130,7 @@ export function CommandPalette() {
           </>
         ) : null}
       </CommandList>
+      </Command>
     </CommandDialog>
   );
 }

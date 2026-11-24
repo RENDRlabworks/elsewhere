@@ -81,7 +81,7 @@ export function describeColor(hex: string): string {
   const mods: string[] = [];
   if (l < 0.12 && !/black|charcoal|basalt|peat/.test(name)) mods.push("very deep");
   else if (l > 0.82 && !/white|ivory|bone|silver|pale/.test(name)) mods.push("pale");
-  if (s > 0.55 && l > 0.2 && l < 0.8) mods.push("rich");
-  else if (s < 0.18 && l > 0.15 && l < 0.85 && !/gray|silver|slate|graphite|charcoal/.test(name)) mods.push("muted");
+  if (s > 0.55 && l > 0.2 && l < 0.8 && !/muted|dusty|faded/.test(name)) mods.push("rich");
+  else if (s < 0.18 && l > 0.15 && l < 0.85 && !/gray|silver|slate|graphite|charcoal|muted|dusty|faded|smoky/.test(name)) mods.push("muted");
   return [...mods, name].join(" ");
 }

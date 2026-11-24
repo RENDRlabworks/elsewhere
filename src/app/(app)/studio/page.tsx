@@ -1,7 +1,13 @@
-"use client";
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { Studio } from "@/components/studio/studio";
 
-import { PageHeader } from "@/components/common/primitives";
+export const metadata: Metadata = { title: "Studio" };
 
-export default function Page() {
-  return <PageHeader title="Studio" description="This destination is being built." />;
+export default function StudioPage() {
+  return (
+    <Suspense>
+      <Studio />
+    </Suspense>
+  );
 }

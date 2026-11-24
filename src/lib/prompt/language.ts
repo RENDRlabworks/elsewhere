@@ -116,7 +116,7 @@ export function compositionLanguage(c: Composition, hasSubject: boolean): string
   if (c.preset) parts.push(`Composition: ${COMPOSITION_PRESET_LANGUAGE[c.preset]}`);
   if (hasSubject) parts.push(`The primary subject is ${positionLanguage(c.x, c.y)}`);
   parts.push(`${cameraAngleLanguage(c.cameraAngle)}, ${cameraDistanceLanguage(c.cameraDistance)}`);
-  parts.push(`with ${depthLanguage(c.depth)} and ${foregroundScaleLanguage(c.foregroundScale)}`);
+  parts.push(`With ${depthLanguage(c.depth)} and ${foregroundScaleLanguage(c.foregroundScale)}`);
   return parts.join(". ") + ".";
 }
 

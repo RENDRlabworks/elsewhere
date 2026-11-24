@@ -119,3 +119,12 @@ describe("patch schemas", () => {
     expect(preferencesPatchSchema.parse({ ui: { theme: "black" } })).toEqual({ ui: { theme: "black" } });
   });
 });
+
+describe("colour language", () => {
+  it("never doubles modifiers", () => {
+    for (const hex of ["#9a8fae", "#b48a8c", "#5f6140", "#8a9a7e", "#c9a6a0"]) {
+      const d = describeColor(hex);
+      expect(d.split(" ").filter((w) => w === "muted").length).toBeLessThanOrEqual(1);
+    }
+  });
+});
