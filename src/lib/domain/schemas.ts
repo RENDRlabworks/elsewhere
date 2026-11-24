@@ -474,6 +474,8 @@ export type Generation = {
   isDevPlaceholder: boolean;
   /** Only present while the image is being generated. */
   progress?: GenerationProgress | null;
+  /** Caption and alt text for posting. Absent until written or generated once. */
+  shareText?: { caption: string; altText: string; source: "ai" | "template" | "edited"; updatedAt: string } | null;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;

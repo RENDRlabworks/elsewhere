@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, CircleAlert, Heart, LoaderCircle, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
+import { shareImage } from "@/components/share/store";
 import { GenerationProgressFill, useCompletionHold } from "./progress";
 import { cn } from "@/lib/utils";
 import {
@@ -66,6 +67,7 @@ export function GenerationContextMenu({
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem disabled={!done} onSelect={() => picker.show([g.id])}>Add to collection…</ContextMenuItem>
+        <ContextMenuItem disabled={!done} onSelect={() => shareImage(g)}>Share or export…</ContextMenuItem>
         <ContextMenuItem disabled={!done} onSelect={() => downloadGeneration(g)}>Download original</ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem variant="destructive" disabled={isActive(g.status)} onSelect={() => void deletePermanently(g)}>

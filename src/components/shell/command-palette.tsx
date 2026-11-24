@@ -27,6 +27,8 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { useResource } from "@/lib/client/resource";
+import { assetSrc } from "@/lib/client/api";
+import type { Generation } from "@/lib/domain/schemas";
 import type { CollectionSummary } from "@/lib/services/collections";
 import { useApp, useProfiles } from "@/stores/app";
 import { hasCommand, runCommand, useUi } from "@/stores/ui";
@@ -41,6 +43,15 @@ export function CommandPalette() {
   const updatePreferences = useApp((s) => s.updatePreferences);
   const [query, setQuery] = React.useState("");
   const { data: collections } = useResource<{ collections: CollectionSummary[] }>(open ? "/api/collections" : null);
+  // Image search waits for a pause in typing so each keystroke does not query the server.
+  const [imageQuery, setImageQuery] = React.useState("");
+  React.useEffect(() => {
+    const t = setTimeout(() => setImageQuery(query.trim()), 180);
+    return () => clearTimeout(t);
+  }, [query]);
+  const { data: images } = useResource<{ items: Generation[] }>(
+    open && imageQuery.length >= 2 ? `/api/generations?status=completed&limit=6&q=${encodeURIComponent(imageQuery)}` : null,
+  );
 
   const go = (href: string) => {
     setOpen(false);
@@ -58,7 +69,7 @@ export function CommandPalette() {
       <Command
         className="rounded-none! bg-transparent"
         // Free-text archive search is a fallback: rank it below every real command.
-        filter={(value, search, keywords) => (value.startsWith("search archive for") ? 0.0001 : defaultFilter(value, search, keywords))}
+        filter={(value, search, keywords) => (value.startsWith("search library for") ? 0.0001 : value.startsWith("image ") ? 0.5 : defaultFilter(value, search, keywords))}
       >
       <CommandInput placeholder="Type a command or search…" value={query} onValueChange={setQuery} />
       <CommandList>
@@ -80,9 +91,23 @@ export function CommandPalette() {
             <Expand /> Toggle fullscreen <CommandShortcut>⇧F</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => studio("toggle-inspector")}>
-            <PanelRight /> Toggle inspector <CommandShortcut>I</CommandShortcut>
+            <PanelRight /> Show or hide details <CommandShortcut>I</CommandShortcut>
           </CommandItem>
         </CommandGroup>
+        {images?.items.length && query.trim().length >= 2 ? (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Images">
+              {images.items.map((g) => (
+                <CommandItem key={g.id} value={`image ${g.id} ${g.title}`} onSelect={() => go(`/studio?generation=${g.id}`)}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={assetSrc(g.assetId, "thumb") ?? ""} alt="" className="size-7 shrink-0 rounded-sm object-cover" />
+                  <span className="truncate">{g.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        ) : null}
         <CommandSeparator />
         <CommandGroup heading="Go to">
           {NAV.map((n) => (
@@ -92,12 +117,12 @@ export function CommandPalette() {
             </CommandItem>
           ))}
           {query.trim() ? (
-            <CommandItem value={`search archive for ${query}`} onSelect={() => go(`/archive?q=${encodeURIComponent(query.trim())}`)}>
-              <Search /> Search archive for “{query.trim()}”
+            <CommandItem value={`search library for ${query}`} onSelect={() => go(`/archive?q=${encodeURIComponent(query.trim())}`)}>
+              <Search /> Search the Library for “{query.trim()}”
             </CommandItem>
           ) : (
             <CommandItem onSelect={() => go("/archive")}>
-              <Search /> Search archive
+              <Search /> Search the Library
             </CommandItem>
           )}
         </CommandGroup>

@@ -4,9 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, Palette, RotateCcw, SearchX, Star, Trash2, X } from "lucide-react";
+import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, ListChecks, Palette, RotateCcw, SearchX, Star, Trash2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
-import { api, errorMessage, newIdempotencyKey } from "@/lib/client/api";
+import { api, assetSrc, errorMessage, newIdempotencyKey } from "@/lib/client/api";
+import type { CollectionSummary } from "@/lib/services/collections";
+import { matchesCollection, plural } from "@/components/collections/lib";
 import { invalidate, useResource } from "@/lib/client/resource";
 import { useApp, usePreferences } from "@/stores/app";
 import { cn, formatDate } from "@/lib/utils";
@@ -14,8 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, IconButton } from "@/components/common/primitives";
 import { confirmAction } from "@/components/common/confirm";
+import { useShareSheet } from "@/components/share/store";
 import { GenerationTile } from "@/components/generation/generation-tile";
-import { downloadMany, GENERATION_KEYS, isActive, useCollectionPicker, useStyleReferencePicker } from "@/components/generation/actions";
+import { GENERATION_KEYS, isActive, useCollectionPicker, useStyleReferencePicker } from "@/components/generation/actions";
 import { BarButton, SelectionBar } from "@/components/collections/selection-bar";
 import { LibraryTabs } from "@/components/common/library-tabs";
 import { ArchiveFilters, SearchField } from "./archive-toolbar";
@@ -209,8 +212,8 @@ export function ArchiveView() {
 
   function download() {
     const list = done.map((g) => g.id);
-    if (list.length > 200) toast.message("Downloading the first 200. Zip downloads are limited to 200 images at a time.");
-    void downloadMany(list.slice(0, 200));
+    if (list.length > 200) toast.message("Exporting the first 200. Zip downloads are limited to 200 images at a time.");
+    useShareSheet.getState().show({ kind: "images", ids: list.slice(0, 200) });
   }
 
   const minCol = DENSITY_MIN[density];
@@ -227,10 +230,11 @@ export function ArchiveView() {
           <div className="min-w-0">
             <h1 className="text-[24px] leading-8 font-medium tracking-[-0.01em] text-foreground">Library</h1>
             <div className="mt-4">
-              <LibraryTabs active="images" imageCount={initialLoading ? null : total} />
+              <LibraryTabs active="images" imageCount={initialLoading ? null : total} q={query.q} />
             </div>
           </div>
           <div className="flex items-center gap-2 pb-1.5">
+            <ReviewButton />
             <SearchField value={search} onChange={setSearch} inputRef={searchRef} />
             <DensityToggle value={density} onChange={(d) => void updatePreferences({ ui: { galleryDensity: d } }).catch((err) => toast.error(errorMessage(err)))} />
           </div>
@@ -253,6 +257,7 @@ export function ArchiveView() {
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-8 pt-6 pb-32">
+          {query.q.trim() ? <CollectionMatches q={query.q} /> : null}
           {initialLoading ? (
             <Grid min={minCol}>
               {Array.from({ length: 18 }, (_, i) => (
@@ -344,7 +349,7 @@ export function ArchiveView() {
           <Palette /> Use as style references
         </BarButton>
         <BarButton onClick={download} disabled={!done.length}>
-          <Download /> Download
+          <Download /> Export
         </BarButton>
         <BarButton onClick={() => void review("accepted")} disabled={!done.length}>
           <Check /> Accept
@@ -475,5 +480,60 @@ function DensityToggle({ value, onChange }: { value: Density; onChange: (d: Dens
         </button>
       ))}
     </div>
+  );
+}
+
+/** Opens triage when there are finished images nobody has kept or rejected yet. */
+function ReviewButton() {
+  const { data } = useResource<Page>("/api/generations?status=completed&filter=unreviewed&limit=1");
+  const count = data?.total ?? 0;
+  if (!count) return null;
+  return (
+    <Button asChild variant="secondary" size="sm" className="h-9 gap-2 rounded-lg px-3">
+      <Link href="/archive/review">
+        <ListChecks /> Review
+        <span className="text-[11.5px] text-text-muted tabular-nums">{count > 199 ? "200+" : count}</span>
+      </Link>
+    </Button>
+  );
+}
+
+/** Collections whose name, description or tags match the search, shown above matching images. */
+function CollectionMatches({ q }: { q: string }) {
+  const { data } = useResource<{ collections: CollectionSummary[] }>("/api/collections");
+  const matches = (data?.collections ?? []).filter((c) => matchesCollection(c, q));
+  if (!matches.length) return null;
+  return (
+    <section aria-label="Matching collections" className="mb-8">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-[11px] tracking-[0.08em] text-text-muted uppercase">Collections</h2>
+        {matches.length > 4 ? (
+          <Link href={`/collections?q=${encodeURIComponent(q.trim())}`} className="text-[12px] text-text-muted hover:text-text-secondary">
+            All {matches.length}
+          </Link>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+        {matches.slice(0, 4).map((c) => {
+          const cover = assetSrc(c.coverAssetId, "thumb");
+          return (
+            <Link
+              key={c.id}
+              href={`/collections/${c.id}`}
+              className="group flex items-center gap-3 rounded-lg bg-surface p-2 pr-3 outline-none transition-colors hover:bg-elevated focus-visible:ring-1 focus-visible:ring-text-secondary"
+            >
+              <span className="relative size-14 shrink-0 overflow-hidden rounded-md bg-elevated">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {cover ? <img src={cover} alt="" className="size-full object-cover" /> : null}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[13.5px] text-foreground">{c.name}</span>
+                <span className="block text-[12px] text-text-muted">{plural(c.imageCount, "image")}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }

@@ -39,7 +39,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState, IconButton } from "@/components/common/primitives";
-import { downloadMany, useStyleReferencePicker } from "@/components/generation/actions";
+import { useStyleReferencePicker } from "@/components/generation/actions";
+import { useShareSheet } from "@/components/share/store";
 import { CollectionHeader, saveCollection } from "./collection-header";
 import { CollectionItems, type Entry } from "./collection-items";
 import { ItemFiltersButton } from "./item-filters";
@@ -290,10 +291,8 @@ export function CollectionDetail({ id }: { id: string }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild disabled={!imageCount}>
-                  <a href={`/api/collections/${id}/download`} download>
-                    <Download /> Download collection
-                  </a>
+                <DropdownMenuItem disabled={!imageCount} onSelect={() => useShareSheet.getState().show({ kind: "collection", id, name: collection.name, count: imageCount })}>
+                  <Download /> Export collection…
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => void duplicateCollection(collection, (nid) => router.push(`/collections/${nid}`))}>
                   <Copy /> Duplicate
@@ -411,8 +410,8 @@ export function CollectionDetail({ id }: { id: string }) {
         </div>
 
         <SelectionBar count={visibleSelected.size} onClear={clearSelection}>
-          <BarButton onClick={() => void downloadMany(selectedEntries.map((e) => e.item.generation!.id))}>
-            <Download /> Download
+          <BarButton onClick={() => useShareSheet.getState().show({ kind: "images", ids: selectedEntries.map((e) => e.item.generation!.id) })}>
+            <Download /> Export
           </BarButton>
           <BarButton onClick={() => showStylePicker(styleIds)} disabled={!styleIds.length}>
             <Palette /> Use as style references

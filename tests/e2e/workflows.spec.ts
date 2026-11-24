@@ -202,3 +202,54 @@ test("command palette navigates", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/settings/);
 });
+
+test("shares an image with a crop, caption and alt text", async ({ page }) => {
+  await page.goto("/archive?q=frozen");
+  const tile = page.locator("main").getByRole("button", { name: /Open The Frozen Hour/ }).first();
+  await expect(tile).toBeVisible({ timeout: 15_000 });
+  await tile.click({ button: "right" });
+  await page.getByRole("menuitem", { name: /Share or export/ }).click();
+  const sheet = page.getByRole("dialog", { name: /Share The Frozen Hour/ });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("radio", { name: "1:1" }).click();
+  await sheet.getByRole("radio", { name: "Social" }).click();
+  await expect(sheet.getByText("1080 × 1080 px")).toBeVisible();
+  await expect(sheet.getByRole("textbox", { name: "Alt text" })).not.toHaveValue("");
+  await sheet.getByRole("textbox", { name: "Caption" }).fill("The Frozen Hour\n\nA quiet test caption.");
+  await sheet.getByRole("textbox", { name: "Alt text" }).click();
+  await expect(sheet.getByText(/^Saved$|kept while this sheet is open/)).toBeVisible();
+
+  const download = page.waitForEvent("download");
+  await sheet.getByRole("link", { name: "Download" }).click();
+  expect((await download).suggestedFilename()).toBe("the-frozen-hour-1x1.jpg");
+
+  // The export endpoint returns exactly the chosen size.
+  const href = await sheet.getByRole("link", { name: "Download" }).getAttribute("href");
+  const res = await page.request.get(href!);
+  expect(res.headers()["content-type"]).toBe("image/jpeg");
+  expect(res.headers()["x-image-width"]).toBe("1080");
+  expect(res.headers()["x-image-height"]).toBe("1080");
+});
+
+test("reviews new images one at a time", async ({ page }) => {
+  await page.goto("/archive/review");
+  await expect(page.getByRole("group", { name: "Review this image" })).toBeVisible({ timeout: 15_000 });
+  const title = await page.locator("main h1").innerText();
+  await page.keyboard.press("a");
+  await expect(page.locator("main h1")).not.toHaveText(title);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator("main h1")).toHaveText(title);
+  await page.getByRole("button", { name: /^Reject/ }).click();
+  const { items } = await (await page.request.get("/api/generations?filter=rejected&limit=200")).json();
+  expect(items.some((g: { title: string }) => g.title === title)).toBe(true);
+});
+
+test("library search finds collections as well as images", async ({ page }) => {
+  await page.goto("/archive?q=volume");
+  await expect(page.getByRole("region", { name: "Matching collections" }).getByText("Elsewhere: Volume I")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("link", { name: "Collections", exact: true }).click();
+  await expect(page).toHaveURL(/\/collections\?q=volume/);
+  await expect(page.getByLabel("Search collections")).toHaveValue("volume");
+  await page.getByLabel("Search collections").fill("no such collection");
+  await expect(page.getByText("No collections match")).toBeVisible();
+});

@@ -111,3 +111,11 @@ export function relativeDay(iso: string) {
 export function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** Whether a collection matches a Library search: every word must appear in its name, description, notes or tags. */
+export function matchesCollection(c: Pick<Collection, "name" | "description" | "notes" | "tags">, q: string) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = [c.name, c.description, c.notes, ...c.tags].join(" ").toLowerCase();
+  return words.every((w) => hay.includes(w));
+}

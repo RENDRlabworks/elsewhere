@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns2,
-  Download,
   Expand,
   FolderPlus,
   Heart,
@@ -17,6 +16,7 @@ import {
   Info,
   PanelRight,
   RotateCcw,
+  Share,
   Scan,
   Sparkles,
   SplitSquareHorizontal,
@@ -37,7 +37,6 @@ import { IconButton, MetaLabel } from "@/components/common/primitives";
 import { GenerationContextMenu, TileState } from "@/components/generation/generation-tile";
 import { GenerationProgressFill, useCompletionHold } from "@/components/generation/progress";
 import {
-  downloadGeneration,
   isActive,
   setReviewStatus,
   toggleFavorite,
@@ -46,6 +45,7 @@ import {
 import { useApp } from "@/stores/app";
 import { useUi } from "@/stores/ui";
 import { useStudio } from "@/stores/studio";
+import { shareImage } from "@/components/share/store";
 import { CANVAS_BACKGROUNDS, CompareSlider, ImageViewer, type ZoomState } from "./image-viewer";
 import type { StudioSession } from "./use-studio-session";
 
@@ -400,6 +400,11 @@ export function Canvas({ session }: { session: StudioSession }) {
             </button>
           ) : null}
           {!fullscreen ? (
+            <Button variant="ghost" size="sm" className="text-text-secondary" disabled={!done} onClick={() => g && shareImage(g)}>
+              <Share /> Share
+            </Button>
+          ) : null}
+          {!fullscreen ? (
             <Button
               variant="ghost"
               size="sm"
@@ -484,7 +489,7 @@ export function Canvas({ session }: { session: StudioSession }) {
             <DirectionPopover icon={Wand2} label="Refine this image" placeholder="Darken the sky and move the fox slightly left" disabled={session.generating} onSubmit={(instruction) => void session.generate({ operation: "refine", parentId: g!.id, instruction, countOverride: 1 })} />
             <Separator orientation="vertical" className="mx-1 h-4" />
             <IconButton icon={FolderPlus} label="Add to collection" side="top" onClick={() => picker.show([g!.id])} />
-            <IconButton icon={Download} label="Download original" side="top" onClick={() => downloadGeneration(g!)} />
+            <IconButton icon={Share} label="Share or export" side="top" onClick={() => shareImage(g!)} />
           </div>
         ) : null}
       </div>
