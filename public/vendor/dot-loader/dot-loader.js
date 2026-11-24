@@ -1,4 +1,4 @@
-/* Vendored from RENDRlabworks/defacto-components@1a5e448 (branch claude/dot-loader-fill, pull request 31), components/dot-loader. Edit there, then copy here. */
+/* Vendored from RENDRlabworks/defacto-components@c22cc96 (main), components/dot-loader. Edit there, then copy here. */
 /* <dot-loader> · Defacto
    A bare 9 by 9 grid of square cells that waits, fills and finishes. Ten patterns, the
    same ones as the loader-* cards, with no card around them.
@@ -30,6 +30,7 @@
      value            Mirrors the attribute: a number, or null while waiting.
      pattern          Mirrors the attribute.
      progress         Read only. What the grid shows now, 0 to 100, or null while waiting.
+     columns, rows    Read only. The grid's size in cells: 9 by 9, or what fill fits in the box.
    Methods
      draw(ms)         Paint one frame at page time ms. The demo page's recorder uses it.
    Events (bubble out of the element)
@@ -436,6 +437,8 @@
     get pattern() { const p = this.getAttribute('pattern'); return PATTERNS[p] ? p : 'tide'; }
     set pattern(p) { this.setAttribute('pattern', p); }
     get progress() { return this._shown == null ? null : Math.floor(this._shown * 100); }
+    get columns() { return this._gw || N; }
+    get rows() { return this._gh || N; }
 
     connectedCallback() {
       if (this._live) return;
