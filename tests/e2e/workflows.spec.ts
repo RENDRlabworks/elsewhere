@@ -267,7 +267,8 @@ test("captures an idea and makes it a scene", async ({ page }) => {
   const card = page.getByRole("listitem").filter({ hasText: "A heron standing in a flooded ballroom" });
   await expect(card).toBeVisible();
   await card.getByRole("button", { name: "Make a scene" }).click();
-  await expect(page).toHaveURL(/\/studio\?scene=/);
+  // Create loads the scene from ?scene= and then tidies the address, so check the scene, not the URL.
+  await expect(page).toHaveURL(/\/studio/);
   await expect(page.getByText("A heron standing in a flooded ballroom").first()).toBeVisible({ timeout: 15_000 });
 
   const { ideas } = await (await page.request.get("/api/inbox?status=used")).json();
