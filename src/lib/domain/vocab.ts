@@ -436,3 +436,22 @@ export const MATERIALS = [
   "dense fog",
   "thin paper bark",
 ] as const;
+
+/** Free-text scene fields that offer ideas. */
+export const IDEA_FIELDS = [
+  "title",
+  "description",
+  "freeDirection",
+  "subjectLabel",
+  "action",
+  "pose",
+  "clothing",
+  "environment",
+  "phenomenon",
+  "naturalElement",
+  "materials",
+  "lighting",
+  "atmosphere",
+  "emotionalTone",
+] as const;
+export type IdeaField = (typeof IDEA_FIELDS)[number];

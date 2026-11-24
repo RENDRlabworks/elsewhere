@@ -87,6 +87,7 @@ export function useStudioSession() {
   const [extra, setExtra] = React.useState<Generation | null>(null);
   const handledParams = React.useRef<string | null>(null);
   const savingRef = React.useRef<Promise<string | null> | null>(null);
+  const savingFn = React.useRef<(() => Promise<string | null>) | null>(null);
 
   /* ------------------------------------------------------------------ */
   /* Initial load from URL params or where the user left off            */
@@ -106,6 +107,75 @@ export function useStudioSession() {
       }),
     };
   }, [prefs]);
+
+  /** The Style DNA that starting images attach to: the scene's, else the active one. */
+  const profileForImages = React.useCallback((): string | null => {
+    const st = useStudio.getState();
+    return st.scene.styleProfileId ?? prefs?.activeStyleProfileId ?? profiles.find((p) => !p.archived)?.id ?? null;
+  }, [prefs?.activeStyleProfileId, profiles]);
+
+  /**
+   * Work from existing images: attach them as style references (sharing the stored
+   * file), and optionally copy the first image's scene into a new draft.
+   */
+  const startFromImages = React.useCallback(
+    async (generationIds: string[], opts: { copyScene?: boolean } = {}) => {
+      const profileId = profileForImages();
+      if (!profileId) throw new Error("Create a Style DNA first, then try again.");
+      const { references } = await api<{ references: { id: string }[] }>("/api/references/from-generation", {
+        body: { generationIds, profileId, role: "style" },
+      });
+      invalidate("/api/references", `/api/styles/${profileId}`);
+      const refIds = references.map((r) => r.id);
+      if (opts.copyScene) {
+        const { generation } = await api<{ generation: Generation }>(`/api/generations/${generationIds[0]}`);
+        if (useStudio.getState().saveState === "dirty") await savingFn.current?.();
+        useStudio.getState().resetScene({
+          ...defaultsForNew(),
+          ...(generation.sceneSnapshot ?? {}),
+          title: `${generation.title} (new)`,
+          styleProfileId: profileId,
+          referenceIds: refIds,
+          promptOverride: null,
+        });
+        setExtra(null);
+        toast.success(`"${generation.title}" is attached as the style reference`, {
+          description: "Change the subject, palette or composition. The look comes from the reference.",
+        });
+      } else {
+        useStudio.getState().update((sc) => ({ styleProfileId: profileId, referenceIds: [...new Set([...sc.referenceIds, ...refIds])] }));
+        toast.success(refIds.length === 1 ? "Starting image attached" : `${refIds.length} starting images attached`, {
+          description: "Its look carries over. Subject and colour still come from this scene.",
+        });
+      }
+    },
+    [profileForImages, defaultsForNew],
+  );
+  const startFromImagesRef = React.useRef(startFromImages);
+  React.useEffect(() => {
+    startFromImagesRef.current = startFromImages;
+  }, [startFromImages]);
+
+  /** Upload a file from the computer as a starting image. */
+  const startFromUpload = React.useCallback(
+    async (file: File) => {
+      const profileId = profileForImages();
+      if (!profileId) throw new Error("Create a Style DNA first, then try again.");
+      const form = new FormData();
+      form.set("file", file);
+      form.set("profileId", profileId);
+      form.set("role", "style");
+      const { reference } = await api<{ reference: { id: string } }>("/api/references", { method: "POST", form });
+      invalidate("/api/references", `/api/styles/${profileId}`);
+      useStudio.getState().update((sc) => ({ styleProfileId: profileId, referenceIds: [...new Set([...sc.referenceIds, reference.id])] }));
+      toast.success("Starting image uploaded and attached", { description: "It was added to the Style DNA's reference board too." });
+    },
+    [profileForImages],
+  );
+
+  const removeStartingImage = React.useCallback((referenceId: string) => {
+    useStudio.getState().update((sc) => ({ referenceIds: sc.referenceIds.filter((id) => id !== referenceId) }));
+  }, []);
 
   const applySuggestion = React.useCallback((s: string) => {
     const [kind, key] = s.split(":");
@@ -137,25 +207,7 @@ export function useStudioSession() {
     (async () => {
       try {
         if (recreateParam) {
-          const { generation } = await api<{ generation: Generation }>(`/api/generations/${recreateParam}`);
-          if (generation.status !== "completed" || !generation.assetId) throw new Error("Only finished images can be recreated.");
-          const base = { ...defaultsForNew(), ...(generation.sceneSnapshot ?? {}) };
-          const profileId = prefs.activeStyleProfileId ?? base.styleProfileId ?? profiles.find((p) => !p.archived)?.id ?? null;
-          if (!profileId) throw new Error("Create a Style DNA first, then try again.");
-          const { references } = await api<{ references: { id: string }[] }>("/api/references/from-generation", {
-            body: { generationIds: [generation.id], profileId, role: "style" },
-          });
-          invalidate("/api/references", `/api/styles/${profileId}`);
-          useStudio.getState().resetScene({
-            ...base,
-            title: `${generation.title} (new)`,
-            styleProfileId: profileId,
-            referenceIds: references.map((r) => r.id),
-            promptOverride: null,
-          });
-          toast.success(`"${generation.title}" is attached as the style reference`, {
-            description: "Change the subject, palette or composition. The look comes from the reference.",
-          });
+          await startFromImagesRef.current([recreateParam], { copyScene: true });
         } else if (restoreParam) {
           const { generation } = await api<{ generation: Generation }>(`/api/generations/${restoreParam}`);
           if (!generation.sceneSnapshot) throw new Error("This image has no scene settings to restore.");
@@ -238,6 +290,10 @@ export function useStudioSession() {
     savingRef.current = p;
     return p;
   }, [lastSceneId, updatePreferences]);
+
+  React.useEffect(() => {
+    savingFn.current = save;
+  }, [save]);
 
   const autosave = prefs?.autosave;
   React.useEffect(() => {
@@ -436,9 +492,12 @@ export function useStudioSession() {
 
   const newScene = React.useCallback(async () => {
     if (useStudio.getState().saveState === "dirty") await save();
-    useStudio.getState().resetScene({ ...defaultsForNew(), title: "Untitled scene", composition: compositionSchema.parse({}) });
+    // Starting images carry over, so a series can keep working from the same look.
+    const prev = useStudio.getState().scene;
+    const keep = prev.referenceIds.length ? { referenceIds: prev.referenceIds, styleProfileId: prev.styleProfileId } : {};
+    useStudio.getState().resetScene({ ...defaultsForNew(), ...keep, title: "Untitled scene", composition: compositionSchema.parse({}) });
     setExtra(null);
-    toast("New scene");
+    toast("New scene", keep.referenceIds ? { description: "Your starting images are still attached." } : undefined);
   }, [save, defaultsForNew]);
 
   const copyPrompt = React.useCallback(async () => {
@@ -483,6 +542,9 @@ export function useStudioSession() {
     randomize,
     newScene,
     copyPrompt,
+    startFromImages,
+    startFromUpload,
+    removeStartingImage,
     prompt,
     profile,
     provider,

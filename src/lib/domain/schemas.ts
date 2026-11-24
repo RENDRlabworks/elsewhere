@@ -9,6 +9,7 @@ import {
   DIRECTIONS,
   FORMATS,
   GENERATION_KINDS,
+  IDEA_FIELDS,
   JOB_STATUSES,
   MOVEMENTS,
   PALETTE_MODES,
@@ -778,6 +779,14 @@ export const conceptRequestSchema = z.object({
   seed: z.number().int().optional(),
   useAi: z.boolean().default(false),
   styleProfileId: z.string().nullable().default(null),
+});
+
+export const ideaRequestSchema = z.object({
+  field: z.enum(IDEA_FIELDS),
+  scene: sceneContentSchema,
+  character: characterSchema.nullable().default(null),
+  count: z.number().int().min(1).max(8).default(6),
+  useAi: z.boolean().default(true),
 });
 
 export { hex as hexSchema };

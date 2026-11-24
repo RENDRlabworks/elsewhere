@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleAlert, Heart, LoaderCircle, Star, X } from "lucide-react";
+import Link from "next/link";
+import { Check, CircleAlert, Heart, LoaderCircle, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,16 @@ export function GenerationTile({
           >
             {selected ? <Check className="size-3" /> : null}
           </button>
+        ) : null}
+        {g.status === "completed" && g.assetId ? (
+          <Link
+            href={`/studio?recreate=${g.id}`}
+            aria-label={`Recreate ${g.title} in this style`}
+            title="Recreate in this style"
+            className="absolute right-2 bottom-2 flex h-6 items-center gap-1 rounded-sm bg-black/60 px-1.5 text-[11px] text-white/85 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80 hover:text-white focus-visible:opacity-100"
+          >
+            <Wand2 className="size-3" /> Recreate
+          </Link>
         ) : null}
         </div>
         {showMeta ? (

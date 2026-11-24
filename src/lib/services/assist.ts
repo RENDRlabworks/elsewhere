@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   aiReviewOutputSchema,
   conceptSchema,
+  type Character,
   STYLE_ATTRIBUTE_LABELS,
   type Concept,
   type ConceptVariable,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/domain/schemas";
 import { CHARACTER_KINDS, COMPOSITION_PRESETS, REVIEW_CRITERIA_OPTIONS } from "@/lib/domain/vocab";
 import { generateConcepts, historyFromScenes, type ConceptMode } from "@/lib/explore/engine";
+import { fieldValue, IDEA_FIELD_LABELS, localIdeas, type IdeaField } from "@/lib/explore/ideas";
 import { assemblePrompt, ensureOutputRequirements } from "@/lib/prompt/assemble";
 import { structuredCompletion, textAssistAvailable } from "@/lib/providers/text";
 import type { ServerContext } from "@/lib/server/context";
@@ -286,4 +288,73 @@ export async function aiReview(ctx: ServerContext, generationId: string) {
     estimated: true,
   });
   return review;
+}
+
+/** Short summary of the scene for idea prompts, leaving out the field being reinvented. */
+function sceneBrief(scene: SceneContent, skip: IdeaField, character: Character) {
+  const lines: [IdeaField | "subjectKind", string][] = [
+    ["title", scene.title],
+    ["description", scene.description],
+    ["subjectKind", character.kind],
+    ["subjectLabel", character.label],
+    ["action", character.action],
+    ["pose", character.pose],
+    ["clothing", character.clothing],
+    ["environment", scene.environment],
+    ["phenomenon", scene.phenomenon],
+    ["naturalElement", scene.naturalElement],
+    ["materials", scene.materials],
+    ["lighting", scene.lighting],
+    ["atmosphere", scene.atmosphere],
+    ["emotionalTone", scene.emotionalTone],
+    ["freeDirection", scene.freeDirection],
+  ];
+  return lines
+    .filter(([k, v]) => k !== skip && v && v.trim())
+    .map(([k, v]) => `- ${k}: ${v.trim()}`)
+    .join("\n");
+}
+
+/**
+ * Ideas for one free-text field. With AI the ideas are written to fit the rest of
+ * the scene and the Style DNA; without it they come from the built-in pools.
+ */
+export async function generateFieldIdeas(
+  ctx: ServerContext,
+  req: { field: IdeaField; scene: SceneContent; character: Character | null; count: number; useAi: boolean },
+): Promise<{ ideas: string[]; source: "engine" | "ai"; model?: string }> {
+  const character = req.character ?? req.scene.subject;
+  if (!req.useAi || !textAssistAvailable()) {
+    return { ideas: localIdeas(req.field, req.scene, { character, count: req.count }), source: "engine" };
+  }
+  const prefs = await getPreferences(ctx);
+  const style = req.scene.styleProfileId ? await ctx.db.table("style_profiles").get(req.scene.styleProfileId) : null;
+  const current = fieldValue(req.field, req.scene, character).trim();
+  const result = await structuredCompletion({
+    schema: z.object({ ideas: z.array(z.string().min(1).max(300)) }),
+    name: "elsewhere_field_ideas",
+    model: prefs.defaults.textModel,
+    system: [
+      "You suggest values for one field of a scene in Elsewhere: surreal fine-art imagery of familiar things in impossible natural worlds.",
+      "Impossibility comes from scale, gravity, perspective, time and environmental relationships. Keep ideas simple, quiet and specific; avoid generic fantasy, neon, magical glows and clichés.",
+      "Each idea must fit the rest of the scene and must be meaningfully different from the others. Write plain text only: no quotation marks, numbering, markdown or dashes used as punctuation.",
+      "Never describe the medium or rendering (painting, photograph, illustration); that comes from the Style DNA.",
+    ].join("\n"),
+    user: [
+      `Field: ${req.field}, ${IDEA_FIELD_LABELS[req.field]}.`,
+      `Return exactly ${req.count} ideas.`,
+      current ? `Current value, do not repeat it: ${current}` : "",
+      style ? `Style DNA "${style.name}": ${style.description}\nEmotional character: ${style.attributes.emotionalCharacter}` : "",
+      `The rest of the scene:\n${sceneBrief(req.scene, req.field, character) || "(nothing yet, so invent freely)"}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+  });
+  const seen = new Set([current.toLowerCase()]);
+  const ideas = result.data.ideas
+    .map((s) => s.replace(/\s*[\u2014\u2013]\s*/g, ", ").replace(/^["'\s]+|["'\s]+$/g, "").trim())
+    .filter((s) => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()))
+    .slice(0, req.count);
+  if (!ideas.length) return { ideas: localIdeas(req.field, req.scene, { character, count: req.count }), source: "engine" };
+  return { ideas, source: "ai", model: result.model };
 }

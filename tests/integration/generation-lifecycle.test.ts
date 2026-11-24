@@ -19,6 +19,7 @@ const { ensureBootstrap } = await import("@/lib/services/bootstrap");
 const { startGeneration, cancelJob, deleteGenerationPermanently, updateGenerationMeta } = await import("@/lib/services/generations");
 const { saveImageAsset } = await import("@/lib/services/assets");
 const { referenceFromGeneration, deleteAssetIfUnused } = await import("@/lib/services/references");
+const { generateFieldIdeas } = await import("@/lib/services/assist");
 const { IMAGE_PROVIDERS } = await import("@/lib/providers/image/registry");
 const { sceneContentSchema } = await import("@/lib/domain/schemas");
 const { HttpError } = await import("@/lib/server/http");
@@ -271,6 +272,14 @@ describe("style references from existing images", () => {
     const [cancelled] = await ctx.db.table("generations").list({ where: { status: "cancelled" }, limit: 1 });
     const profile = (await ctx.db.table("style_profiles").first({}))!;
     await expect(referenceFromGeneration(ctx, { generationId: cancelled.id, profileId: profile.id, role: "style" })).rejects.toBeInstanceOf(HttpError);
+  });
+});
+
+describe("field ideas", () => {
+  it("falls back to built-in ideas without an OpenAI key, even when AI is requested", async () => {
+    const res = await generateFieldIdeas(ctx, { field: "lighting", scene: scene(), character: null, count: 4, useAi: true });
+    expect(res.source).toBe("engine");
+    expect(res.ideas).toHaveLength(4);
   });
 });
 

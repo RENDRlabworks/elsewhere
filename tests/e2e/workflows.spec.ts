@@ -78,6 +78,32 @@ test("recreates an image's style with a new direction", async ({ page }) => {
   expect(items.some((g: { assetId: string }) => g.assetId === ref.assetId)).toBe(true);
 });
 
+test("works from a starting image chosen in the Studio and fills fields with ideas", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: "New scene" }).click();
+  await page.getByRole("button", { name: "Choose image" }).click();
+  await page.getByRole("tab", { name: "All images" }).click();
+  await page.getByRole("button", { name: /Select The Frozen Hour/ }).first().click();
+  await page.getByRole("button", { name: "Use its look", exact: true }).click();
+  await expect(page.getByText("Starting image attached")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
+
+  // Ideas fill a field, respect locks, and undo restores the previous text.
+  const env = page.getByLabel("Environment", { exact: true });
+  await env.fill("a quiet shore");
+  await page.getByRole("button", { name: "New idea for Environment" }).click();
+  await expect(env).not.toHaveValue("a quiet shore");
+  await expect(env).not.toHaveValue("");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(env).toHaveValue("a quiet shore");
+  await page.getByRole("button", { name: "Lock Environment" }).click();
+  await expect(page.getByRole("button", { name: "New idea for Environment" })).toBeDisabled();
+
+  // A new scene keeps the starting image.
+  await page.getByRole("button", { name: "New scene" }).click();
+  await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
+});
+
 test("locked Style DNA attributes cannot be changed through the API", async ({ request }) => {
   const { profiles } = await (await request.get("/api/styles")).json();
   const id = profiles[0].id as string;
