@@ -6,8 +6,18 @@ import { expect, test, type Page } from "@playwright/test";
  * outputs are labelled as such.
  */
 
+/** Open Create in a new tab on a blank scene. Tabs are saved, so earlier tabs may reopen first. */
 async function openStudio(page: Page) {
   await page.goto("/studio");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await page.getByRole("button", { name: /^Blank scene/ }).click();
+  await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
+}
+
+/** New, then Blank scene: a scene with nothing carried over. */
+async function newBlankScene(page: Page) {
+  await page.getByRole("button", { name: "New scene", exact: true }).click();
+  await page.getByRole("button", { name: /^Blank scene/ }).click();
   await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
 }
 
@@ -38,7 +48,7 @@ test("bootstraps the workspace with Style DNA presets and Volume I", async ({ pa
 
 test("directs a scene, sees the prompt update live, and generates", async ({ page }) => {
   await openStudio(page);
-  await page.getByRole("button", { name: "New scene" }).click();
+  await newBlankScene(page);
   await openSceneFields(page);
   await page.getByLabel("Title", { exact: true }).fill("The Frozen Hour");
   await openChip(page, "Setting");
@@ -100,7 +110,7 @@ test("recreates an image's style with a new direction", async ({ page }) => {
 
 test("works from a starting image chosen in the Studio and fills fields with ideas", async ({ page }) => {
   await openStudio(page);
-  await page.getByRole("button", { name: "New scene" }).click();
+  await newBlankScene(page);
   await page.getByRole("button", { name: "Choose image" }).click();
   await page.getByRole("tab", { name: "All images" }).click();
   await page.getByRole("button", { name: /Select The Frozen Hour/ }).first().click();
@@ -120,8 +130,10 @@ test("works from a starting image chosen in the Studio and fills fields with ide
   await page.getByRole("button", { name: "Lock Environment" }).click();
   await expect(page.getByRole("button", { name: "New idea for Environment" })).toBeDisabled();
 
-  // A new scene keeps the starting image.
-  await page.getByRole("button", { name: "New scene" }).click();
+  // A new scene starts blank, with one click to keep the starting image and look.
+  await newBlankScene(page);
+  await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Keep starting image and look" }).click();
   await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
 });
 
@@ -147,7 +159,7 @@ test("suggestion menus open with every option even when the field has text", asy
 
 test("changing the subject rewrites the fields that name it", async ({ page }) => {
   await openStudio(page);
-  await page.getByRole("button", { name: "New scene" }).click();
+  await newBlankScene(page);
   await openSceneFields(page);
   await page.getByLabel("Title", { exact: true }).fill("The Fox's Wish");
   await page.getByLabel("Description", { exact: true }).last().fill("A fox beneath a dandelion clock.");
@@ -311,6 +323,9 @@ test.describe("on a phone", () => {
 
   test("navigates with the tab bar and switches Create between image and Direct", async ({ page }) => {
     await page.goto("/studio");
+    await page.getByRole("button", { name: /^Tabs, \d+ open/ }).click();
+    await page.getByRole("dialog", { name: "Tabs" }).getByRole("button", { name: "New tab", exact: true }).click();
+    await page.getByRole("button", { name: /^Blank scene/ }).click();
     const tabs = page.getByRole("navigation", { name: "Primary" }).last();
     await expect(tabs.getByRole("link", { name: "Library" })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("tab", { name: "Direct" }).click();
@@ -320,4 +335,51 @@ test.describe("on a phone", () => {
     await tabs.getByRole("button", { name: "Capture an idea" }).click();
     await expect(page.getByRole("dialog", { name: "Capture an idea" })).toBeVisible();
   });
+});
+
+test("a new tab opens on the start screen and resumes a recent scene from it", async ({ page }) => {
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "What are you starting from?" })).toBeVisible({ timeout: 15_000 });
+  // Nothing from earlier work is on screen until it is chosen.
+  await expect(page.getByRole("listbox", { name: "Images for this scene" })).toHaveCount(0);
+  const recent = page.getByRole("region", { name: "Pick up where you left off" });
+  await recent.getByRole("button").first().click();
+  await expect(page.getByRole("heading", { name: "What are you starting from?" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
+  // A new tab brings the start screen back.
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "What are you starting from?" })).toBeVisible();
+  await page.getByRole("button", { name: /^Start from / }).first().click();
+  await expect(page.getByText(/Starting image attached/)).toBeVisible();
+});
+
+test("tabs hold separate scenes, switch, close and come back after a reload", async ({ page }) => {
+  await openStudio(page);
+  await openSceneFields(page);
+  await page.getByLabel("Title", { exact: true }).fill("Tab one");
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await page.getByRole("button", { name: /^Blank scene/ }).click();
+  await openSceneFields(page);
+  await page.getByLabel("Title", { exact: true }).fill("Tab two");
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  const strip = page.getByRole("tablist", { name: "Open scenes" });
+  await strip.getByRole("tab", { name: "Tab one" }).click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Tab one");
+  await expect(strip.getByRole("tab", { name: "Tab one" })).toHaveAttribute("aria-selected", "true");
+
+  // Tabs are saved to preferences, so they survive a reload (and follow you to other devices).
+  await page.waitForTimeout(700);
+  await page.reload();
+  await expect(strip.getByRole("tab", { name: "Tab two" })).toBeVisible({ timeout: 15_000 });
+  await expect(strip.getByRole("tab", { name: "Tab one" })).toHaveAttribute("aria-selected", "true");
+
+  // Closing a tab keeps its scene.
+  await page.getByRole("button", { name: "Close Tab two" }).click();
+  await expect(strip.getByRole("tab", { name: "Tab two" })).toHaveCount(0);
+  const { scenes } = await (await page.request.get("/api/scenes")).json();
+  expect(scenes.some((s: { title: string }) => s.title === "Tab two")).toBe(true);
 });

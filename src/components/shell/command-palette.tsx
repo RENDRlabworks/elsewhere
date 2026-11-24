@@ -78,7 +78,7 @@ export function CommandPalette() {
         <CommandEmpty>No matching commands.</CommandEmpty>
         <CommandGroup heading="Create">
           <CommandItem onSelect={() => studio("new-scene")}>
-            <Plus /> New scene
+            <Plus /> New tab
           </CommandItem>
           <CommandItem
             value="capture an idea inbox note"

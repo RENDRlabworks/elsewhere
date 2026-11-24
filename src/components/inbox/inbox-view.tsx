@@ -51,7 +51,7 @@ export function InboxView() {
         tabs={
           <PageTabs
             items={[
-              { href: "/inbox", label: "Inbox", active: status === "inbox", count: data?.count ?? null },
+              { href: "/inbox", label: "Inbox", active: status === "inbox", count: data?.count || null },
               { href: "/inbox?status=used", label: "Made into scenes", active: status === "used" },
               { href: "/inbox?status=archived", label: "Archived", active: status === "archived" },
             ]}
@@ -59,7 +59,7 @@ export function InboxView() {
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-2xl px-4 pt-2 pb-32 md:px-8">
+        <div className="w-full max-w-[calc(42rem+4rem)] px-4 pt-2 pb-32 md:px-8">
           {status === "inbox" && !migration ? (
             <div className="mb-8">
               <Composer autoFocus={capture} onSaved={() => toast.success("Saved to your inbox")} />

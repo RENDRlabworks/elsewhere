@@ -22,7 +22,10 @@ type StudioState = {
   selectedId: string | null;
   compareId: string | null;
   compareMode: "off" | "slider" | "side";
+  /** Create shows its start screen instead of a scene. Loading or starting a scene closes it. */
+  startOpen: boolean;
 
+  setStartOpen: (open: boolean) => void;
   loadScene: (scene: Scene) => void;
   resetScene: (content?: Partial<SceneContent>) => void;
   update: (patch: Partial<SceneContent> | ((s: SceneContent) => Partial<SceneContent>), opts?: { history?: boolean }) => void;
@@ -59,6 +62,9 @@ export const useStudio = create<StudioState>((set, get) => ({
   selectedId: null,
   compareId: null,
   compareMode: "off",
+  startOpen: false,
+
+  setStartOpen: (open) => set({ startOpen: open }),
 
   loadScene(scene) {
     set({
@@ -74,6 +80,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       selectedId: null,
       compareId: null,
       compareMode: "off",
+      startOpen: false,
     });
   },
 
@@ -90,6 +97,7 @@ export const useStudio = create<StudioState>((set, get) => ({
       selectedId: null,
       compareId: null,
       compareMode: "off",
+      startOpen: false,
       revision: get().revision + 1,
     });
   },

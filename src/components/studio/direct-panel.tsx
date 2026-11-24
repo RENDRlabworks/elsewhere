@@ -209,7 +209,7 @@ export function DirectPanel({ session }: { session: StudioSession }) {
         <div className="flex items-center gap-0.5">
           <IconButton icon={Undo2} label="Undo" shortcut="⌘Z" disabled={!canUndo} onClick={undo} />
           <IconButton icon={Redo2} label="Redo" shortcut="⇧⌘Z" disabled={!canRedo} onClick={redo} />
-          <IconButton icon={Plus} label="New scene" onClick={() => void session.newScene()} />
+          <IconButton icon={Plus} label="New scene" onClick={() => void session.newTab()} />
         </div>
       </div>
 

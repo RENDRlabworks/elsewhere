@@ -61,7 +61,7 @@ export function PageTabs({ items }: { items: { href: string; label: string; acti
           )}
         >
           {t.label}
-          {t.count != null ? <span className="ml-1.5 font-mono text-[11.5px] text-text-muted tabular-nums">{t.count.toLocaleString()}</span> : null}
+          {t.count != null ? <span className="ml-1.5 text-[12px] text-text-muted tabular-nums">{t.count.toLocaleString()}</span> : null}
         </Link>
       ))}
     </nav>
