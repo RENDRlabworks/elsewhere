@@ -137,16 +137,19 @@ export function StartingImageSection({ session }: { session: StudioSession }) {
 
 type Source = "volume" | "favorites" | "all";
 
-function StartingImagePicker({
+export function StartingImagePicker({
   open,
   onOpenChange,
   session,
   onUpload,
+  onPick,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   session: StudioSession;
   onUpload: () => void;
+  /** Replaces the default (attach to the current scene), e.g. to start a new scene from the pick. */
+  onPick?: (ids: string[], copyScene: boolean) => Promise<void>;
 }) {
   const { data: collections } = useResource<{ collections: Collection[] }>(open ? "/api/collections" : null);
   const volume = collections?.collections.find((c) => c.isSeed) ?? null;
@@ -179,7 +182,8 @@ function StartingImagePicker({
   const run = async (mode: "look" | "scene") => {
     setBusy(mode);
     try {
-      await session.startFromImages(picked, { copyScene: mode === "scene" });
+      if (onPick) await onPick(picked, mode === "scene");
+      else await session.startFromImages(picked, { copyScene: mode === "scene" });
       onOpenChange(false);
     } catch (err) {
       toast.error(errorMessage(err));

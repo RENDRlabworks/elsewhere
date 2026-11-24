@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
 import { DirectPanel } from "./direct-panel";
+import { StartScreen } from "./start-screen";
+import { TabStrip, TabSwitcherButton } from "./tab-strip";
+import { useStudio } from "@/stores/studio";
 import { useStudioSession } from "./use-studio-session";
 
 const LAYOUT_KEY = "elsewhere.create.layout";
@@ -60,6 +63,7 @@ function PhoneStudio({ session }: { session: ReturnType<typeof useStudioSession>
             </button>
           ))}
         </div>
+        <TabSwitcherButton session={session} />
       </div>
       <div className="relative min-h-0 flex-1">
         <div className={cn("absolute inset-0", view !== "image" && "hidden")}>
@@ -89,6 +93,7 @@ function PhoneStudio({ session }: { session: ReturnType<typeof useStudioSession>
 export function Studio() {
   const session = useStudioSession();
   const phone = useIsPhone();
+  const startOpen = useStudio((s) => s.startOpen);
   const { scenePanelOpen, inspectorOpen, fullscreen } = useUi();
   const sceneRef = usePanelRef();
   const inspectorRef = usePanelRef();
@@ -99,13 +104,13 @@ export function Studio() {
     if (!p) return;
     if (scenePanelOpen && !fullscreen) p.expand();
     else p.collapse();
-  }, [scenePanelOpen, fullscreen, sceneRef]);
+  }, [scenePanelOpen, fullscreen, sceneRef, startOpen, phone]);
   React.useEffect(() => {
     const p = inspectorRef.current;
     if (!p) return;
     if (inspectorOpen && !fullscreen) p.expand();
     else p.collapse();
-  }, [inspectorOpen, fullscreen, inspectorRef]);
+  }, [inspectorOpen, fullscreen, inspectorRef, startOpen, phone]);
 
   if (session.booting) {
     return (
@@ -123,9 +128,11 @@ export function Studio() {
     );
   }
 
-  if (phone) return <PhoneStudio session={session} />;
-
-  return (
+  const body = startOpen ? (
+    <StartScreen session={session} />
+  ) : phone ? (
+    <PhoneStudio session={session} />
+  ) : (
     <Group
       orientation="horizontal"
       defaultLayout={layout}
@@ -148,5 +155,12 @@ export function Studio() {
         <DirectPanel session={session} />
       </Panel>
     </Group>
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      {!fullscreen ? <TabStrip session={session} /> : null}
+      <div className="min-h-0 flex-1">{body}</div>
+    </div>
   );
 }

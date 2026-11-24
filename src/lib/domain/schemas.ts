@@ -710,6 +710,12 @@ export type UsageRecord = {
 /* Preferences                                                                */
 /* -------------------------------------------------------------------------- */
 
+export const createTabsSchema = z.object({
+  tabs: z.array(z.object({ id: z.string().min(1).max(40), sceneId: z.string().nullable() })).max(20).default([]),
+  activeId: z.string().nullable().default(null),
+});
+export type CreateTabs = z.infer<typeof createTabsSchema>;
+
 export const preferencesSchema = z.object({
   defaults: z
     .object({
@@ -764,6 +770,8 @@ export const preferencesSchema = z.object({
   shortcuts: z.record(z.string(), z.string()).default({}),
   lastSceneId: z.string().nullable().default(null),
   activeStyleProfileId: z.string().nullable().default(null),
+  /** Open tabs in Create, synced across devices. A tab without a scene shows the start screen. */
+  createTabs: createTabsSchema.default({ tabs: [], activeId: null }),
 });
 export type Preferences = z.infer<typeof preferencesSchema>;
 
@@ -775,6 +783,7 @@ export const preferencesPatchSchema = z.object({
   shortcuts: z.record(z.string(), z.string()).optional(),
   lastSceneId: z.string().nullable().optional(),
   activeStyleProfileId: z.string().nullable().optional(),
+  createTabs: createTabsSchema.optional(),
 });
 
 export type UserPreferences = {

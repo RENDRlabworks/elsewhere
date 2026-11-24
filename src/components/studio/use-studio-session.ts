@@ -23,6 +23,7 @@ import { confirmAction } from "@/components/common/confirm";
 import { isActive } from "@/components/generation/actions";
 import { useApp, useProfiles, useProviders } from "@/stores/app";
 import { onCommand, useUi } from "@/stores/ui";
+import { useTabs, type CreateTab } from "./tabs-store";
 import { useStudio } from "@/stores/studio";
 
 const FIELD_TO_VARIABLES: Partial<Record<SceneField, ConceptVariable[]>> = {
@@ -192,6 +193,26 @@ export function useStudioSession() {
   const commands = React.useRef<Record<string, () => void>>({});
   const runCommandLocal = React.useCallback((name: string) => commands.current[name]?.(), []);
 
+  /** Put a tab's content on screen: its scene, or the start screen. */
+  const showTab = React.useCallback(async (tab: CreateTab | null) => {
+    const st = useStudio.getState();
+    if (!tab?.sceneId) {
+      st.setStartOpen(true);
+      return;
+    }
+    if (st.sceneId === tab.sceneId) {
+      st.setStartOpen(false);
+      return;
+    }
+    const res = await api<{ scene: Scene }>(`/api/scenes/${tab.sceneId}`).catch(() => null);
+    if (res && !res.scene.archived) {
+      useStudio.getState().loadScene(res.scene);
+      setExtra(null);
+    } else {
+      useTabs.getState().setActiveScene(null);
+      useStudio.getState().setStartOpen(true);
+    }
+  }, []);
   React.useEffect(() => {
     if (!prefs) return;
     const key = params.toString();
@@ -205,10 +226,15 @@ export function useStudioSession() {
     const command = params.get("command");
 
     (async () => {
+      const tabs = useTabs.getState();
+      tabs.hydrate(prefs.createTabs);
       try {
+        if ((sceneParam || genParam || restoreParam || recreateParam) && useStudio.getState().saveState === "dirty") await savingFn.current?.();
         if (recreateParam) {
+          tabs.ensureFreeTab();
           await startFromImagesRef.current([recreateParam], { copyScene: true });
         } else if (restoreParam) {
+          tabs.ensureFreeTab();
           const { generation } = await api<{ generation: Generation }>(`/api/generations/${restoreParam}`);
           if (!generation.sceneSnapshot) throw new Error("This image has no scene settings to restore.");
           useStudio.getState().resetScene({ ...generation.sceneSnapshot, promptOverride: generation.sceneSnapshot.promptOverride });
@@ -219,26 +245,24 @@ export function useStudioSession() {
           if (generation.sceneId) {
             const res = await api<{ scene: Scene }>(`/api/scenes/${generation.sceneId}`).catch(() => null);
             if (res && !res.scene.archived) {
+              tabs.openScene(res.scene.id);
               useStudio.getState().loadScene(res.scene);
               loaded = true;
             }
           }
           if (!loaded) {
+            tabs.ensureFreeTab();
             useStudio.getState().resetScene({ ...defaultsForNew(), ...(generation.sceneSnapshot ?? { title: generation.title }) });
             setExtra(generation);
           }
           useStudio.getState().select(generation.id);
         } else if (sceneParam) {
           const { scene } = await api<{ scene: Scene }>(`/api/scenes/${sceneParam}`);
+          tabs.openScene(scene.id);
           useStudio.getState().loadScene(scene);
         } else if (!useStudio.getState().sceneId && useStudio.getState().saveState === "idle") {
-          const last = prefs.lastSceneId ? await api<{ scene: Scene }>(`/api/scenes/${prefs.lastSceneId}`).catch(() => null) : null;
-          if (last && !last.scene.archived) useStudio.getState().loadScene(last.scene);
-          else {
-            const { scenes } = await api<{ scenes: Scene[] }>("/api/scenes?status=draft");
-            if (scenes[0]) useStudio.getState().loadScene(scenes[0]);
-            else useStudio.getState().resetScene({ ...defaultsForNew(), title: "Untitled scene" });
-          }
+          // Reopen the active tab: its scene, or the start screen for a new tab.
+          await showTab(useTabs.getState().active());
         }
         if (suggest) applySuggestion(suggest);
         if (command) setTimeout(() => runCommandLocal(command), 50);
@@ -491,15 +515,77 @@ export function useStudioSession() {
     }
   }, [randomizing]);
 
+  /**
+   * A truly blank scene in the default look. When the scene being left had starting
+   * images, one click puts them (and its look) back, for working in a series.
+   */
   const newScene = React.useCallback(async () => {
     if (useStudio.getState().saveState === "dirty") await save();
-    // Starting images carry over, so a series can keep working from the same look.
-    const prev = useStudio.getState().scene;
-    const keep = prev.referenceIds.length ? { referenceIds: prev.referenceIds, styleProfileId: prev.styleProfileId } : {};
-    useStudio.getState().resetScene({ ...defaultsForNew(), ...keep, title: "Untitled scene", composition: compositionSchema.parse({}) });
+    const prev = useStudio.getState().sceneId || useStudio.getState().saveState !== "idle" ? useStudio.getState().scene : null;
+    useStudio.getState().resetScene({ ...defaultsForNew(), title: "Untitled scene", composition: compositionSchema.parse({}) });
     setExtra(null);
-    toast("New scene", keep.referenceIds ? { description: "Your starting images are still attached." } : undefined);
+    if (prev?.referenceIds.length) {
+      const keep = { referenceIds: prev.referenceIds, styleProfileId: prev.styleProfileId };
+      toast("Blank scene", {
+        description: `Working in a series? Keep the starting image${prev.referenceIds.length > 1 ? "s" : ""} and look from "${prev.title}".`,
+        duration: 10_000,
+        action: { label: "Keep starting image and look", onClick: () => useStudio.getState().update(keep) },
+      });
+    }
   }, [save, defaultsForNew]);
+
+  /* ------------------------------------------------------------------ */
+  /* Tabs                                                                */
+  /* ------------------------------------------------------------------ */
+
+
+  const switchTab = React.useCallback(
+    async (id: string) => {
+      if (useStudio.getState().saveState === "dirty") await save();
+      await showTab(useTabs.getState().activate(id));
+    },
+    [save, showTab],
+  );
+
+  /** A new tab on the start screen. The scene being left is saved first. */
+  const newTab = React.useCallback(async () => {
+    if (useStudio.getState().saveState === "dirty") await save();
+    useTabs.getState().newTab(null);
+    useStudio.getState().setStartOpen(true);
+  }, [save]);
+
+  /** Close a tab. Its scene and images stay in Recent and the Library. */
+  const closeTab = React.useCallback(
+    async (id: string) => {
+      const wasActive = useTabs.getState().activeId === id;
+      if (wasActive && useStudio.getState().saveState === "dirty") await save();
+      const next = useTabs.getState().close(id);
+      if (wasActive) await showTab(next);
+    },
+    [save, showTab],
+  );
+
+  /** Show a scene, in its own tab if it is already open. */
+  const openSceneInTab = React.useCallback(
+    async (scene: Scene) => {
+      if (useStudio.getState().saveState === "dirty") await save();
+      useTabs.getState().openScene(scene.id);
+      useStudio.getState().loadScene(scene);
+      setExtra(null);
+    },
+    [save],
+  );
+
+  // Whenever the scene on screen gets an id (a first save, a fork, a loaded scene), the tab follows it.
+  React.useEffect(
+    () =>
+      useStudio.subscribe((s, p) => {
+        if (s.sceneId && s.sceneId !== p.sceneId) useTabs.getState().setActiveScene(s.sceneId);
+      }),
+    [],
+  );
+
+  const openStart = newTab;
 
   const copyPrompt = React.useCallback(async () => {
     await navigator.clipboard.writeText(prompt.text);
@@ -514,7 +600,7 @@ export function useStudioSession() {
     commands.current = {
     generate: () => void generate(),
     randomize: () => void randomize(),
-    "new-scene": () => void newScene(),
+    "new-scene": () => void newTab(),
     "copy-prompt": () => void copyPrompt(),
     "toggle-fullscreen": () => useUi.getState().setFullscreen(!useUi.getState().fullscreen),
     "toggle-inspector": () => useUi.getState().toggleInspector(),
@@ -542,6 +628,12 @@ export function useStudioSession() {
     retry,
     randomize,
     newScene,
+    openStart,
+    newTab,
+    switchTab,
+    closeTab,
+    openSceneInTab,
+    defaultsForNew,
     copyPrompt,
     startFromImages,
     startFromUpload,
