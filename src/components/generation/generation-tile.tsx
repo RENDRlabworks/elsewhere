@@ -22,6 +22,7 @@ import {
   STATUS_LABEL,
   toggleFavorite,
   useCollectionPicker,
+  useStyleReferencePicker,
 } from "./actions";
 
 export function GenerationContextMenu({
@@ -35,6 +36,7 @@ export function GenerationContextMenu({
 }) {
   const router = useRouter();
   const picker = useCollectionPicker();
+  const stylePicker = useStyleReferencePicker();
   const done = g.status === "completed" && !!g.assetId;
   return (
     <ContextMenu>
@@ -44,6 +46,8 @@ export function GenerationContextMenu({
         {g.sceneSnapshot ? (
           <ContextMenuItem onSelect={() => router.push(`/studio?restore=${g.id}`)}>Restore scene settings</ContextMenuItem>
         ) : null}
+        <ContextMenuItem disabled={!done} onSelect={() => router.push(`/studio?recreate=${g.id}`)}>Recreate in this style</ContextMenuItem>
+        <ContextMenuItem disabled={!done} onSelect={() => stylePicker.show([g.id])}>Use as style reference…</ContextMenuItem>
         {extra}
         <ContextMenuSeparator />
         <ContextMenuItem disabled={!done} onSelect={() => void toggleFavorite(g)}>

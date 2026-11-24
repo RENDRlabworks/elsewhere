@@ -130,12 +130,33 @@ export function useStudioSession() {
     const sceneParam = params.get("scene");
     const genParam = params.get("generation");
     const restoreParam = params.get("restore");
+    const recreateParam = params.get("recreate");
     const suggest = params.get("suggest");
     const command = params.get("command");
 
     (async () => {
       try {
-        if (restoreParam) {
+        if (recreateParam) {
+          const { generation } = await api<{ generation: Generation }>(`/api/generations/${recreateParam}`);
+          if (generation.status !== "completed" || !generation.assetId) throw new Error("Only finished images can be recreated.");
+          const base = { ...defaultsForNew(), ...(generation.sceneSnapshot ?? {}) };
+          const profileId = prefs.activeStyleProfileId ?? base.styleProfileId ?? profiles.find((p) => !p.archived)?.id ?? null;
+          if (!profileId) throw new Error("Create a Style DNA first, then try again.");
+          const { references } = await api<{ references: { id: string }[] }>("/api/references/from-generation", {
+            body: { generationIds: [generation.id], profileId, role: "style" },
+          });
+          invalidate("/api/references", `/api/styles/${profileId}`);
+          useStudio.getState().resetScene({
+            ...base,
+            title: `${generation.title} (new)`,
+            styleProfileId: profileId,
+            referenceIds: references.map((r) => r.id),
+            promptOverride: null,
+          });
+          toast.success(`"${generation.title}" is attached as the style reference`, {
+            description: "Change the subject, palette or composition. The look comes from the reference.",
+          });
+        } else if (restoreParam) {
           const { generation } = await api<{ generation: Generation }>(`/api/generations/${restoreParam}`);
           if (!generation.sceneSnapshot) throw new Error("This image has no scene settings to restore.");
           useStudio.getState().resetScene({ ...generation.sceneSnapshot, promptOverride: generation.sceneSnapshot.promptOverride });
@@ -174,7 +195,7 @@ export function useStudioSession() {
         if (!useStudio.getState().sceneId) useStudio.getState().resetScene(defaultsForNew());
       } finally {
         setBooting(false);
-        if (sceneParam || genParam || restoreParam || suggest || command) router.replace("/studio", { scroll: false });
+        if (sceneParam || genParam || restoreParam || recreateParam || suggest || command) router.replace("/studio", { scroll: false });
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, RotateCcw, SearchX, Star, Trash2, X } from "lucide-react";
+import { Archive as ArchiveIcon, Check, Download, FolderPlus, Heart, Palette, RotateCcw, SearchX, Star, Trash2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { api, errorMessage, newIdempotencyKey } from "@/lib/client/api";
 import { invalidate, useResource } from "@/lib/client/resource";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, IconButton } from "@/components/common/primitives";
 import { confirmAction } from "@/components/common/confirm";
 import { GenerationTile } from "@/components/generation/generation-tile";
-import { downloadMany, GENERATION_KEYS, isActive, useCollectionPicker } from "@/components/generation/actions";
+import { downloadMany, GENERATION_KEYS, isActive, useCollectionPicker, useStyleReferencePicker } from "@/components/generation/actions";
 import { BarButton, SelectionBar } from "@/components/collections/selection-bar";
 import { ArchiveFilters, SearchField } from "./archive-toolbar";
 import { apiBase, pageKey, PAGE_SIZE, useArchiveQuery } from "./query";
@@ -37,6 +37,7 @@ export function ArchiveView() {
   const updatePreferences = useApp((s) => s.updatePreferences);
   const density: Density = prefs?.ui.galleryDensity ?? "comfortable";
   const picker = useCollectionPicker();
+  const showStylePicker = useStyleReferencePicker((s) => s.show);
 
   /* Search: local while typing, debounced into the URL. */
   const [search, setSearch] = React.useState(query.q);
@@ -341,6 +342,9 @@ export function ArchiveView() {
       <SelectionBar count={visibleSelected.size} onClear={clearSelection}>
         <BarButton onClick={() => picker.show(done.map((g) => g.id))} disabled={!done.length}>
           <FolderPlus /> Add to collection
+        </BarButton>
+        <BarButton onClick={() => showStylePicker(done.slice(0, 20).map((g) => g.id))} disabled={!done.length}>
+          <Palette /> Use as style references
         </BarButton>
         <BarButton onClick={download} disabled={!done.length}>
           <Download /> Download

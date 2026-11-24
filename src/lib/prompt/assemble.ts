@@ -43,7 +43,7 @@ export const SECTION_ORDER = [
 export type SectionKey = (typeof SECTION_ORDER)[number][0];
 
 export const OUTPUT_REQUIREMENTS =
-  "Output: one single standalone photograph filling the entire frame. No collage, no multiple panels, no split frames or grids, no embedded text or typography, no watermark, no logos, no borders, and no unnecessary elements.";
+  "Output: one single standalone image filling the entire frame. No collage, no multiple panels, no split frames or grids, no embedded text or typography, no watermark, no logos, no borders, and no unnecessary elements.";
 
 const REQUIRED_PHRASES = ["no collage", "no multiple panels", "no embedded text", "no watermark", "no logos"];
 
@@ -140,7 +140,7 @@ export function buildSections(input: AssembleInput): PromptSection[] {
     text: scene.phenomenon
       ? join(
           `The impossible phenomenon: ${scene.phenomenon}`,
-          "It is presented as physically real and photographed, not illustrated, with impossibility arising from scale, gravity, perspective or environmental relationships",
+          "It is presented as a believable, integral part of the scene, with impossibility arising from scale, gravity, perspective or environmental relationships",
         )
       : "",
     locked: lockedFields.has("phenomenon"),
@@ -155,7 +155,7 @@ export function buildSections(input: AssembleInput): PromptSection[] {
 
   // 8. Materials
   sec.materials = {
-    text: join(scene.materials && `Materials: ${scene.materials}, rendered with real physical texture`),
+    text: join(scene.materials && `Materials: ${scene.materials}, rendered with tangible texture`),
     locked: lockedFields.has("materials"),
   };
 
@@ -224,7 +224,7 @@ export function buildSections(input: AssembleInput): PromptSection[] {
               return `image ${i + 1} is a ${role} reference${r.label ? ` (${r.label})` : ""}`;
             })
             .join("; "),
-          "Use each reference only for its stated role. Do not copy their subjects or compositions unless that is the stated role",
+          referenceGuidance(refs, scene),
         )
       : "",
   };
@@ -256,6 +256,34 @@ export function buildSections(input: AssembleInput): PromptSection[] {
   return SECTION_ORDER.map(([key, label]) => ({ key, label, text: sec[key].text, locked: sec[key].locked || undefined }))
     .filter((s) => s.text.trim().length > 0)
     .map((s) => ({ ...s, text: capitalize(s.text) }));
+}
+
+/** What each reference role should and should not carry into the new image. */
+const ROLE_GUIDANCE: Record<ReferenceRole, string> = {
+  style: "match its medium, rendering, brushwork, grain, texture and treatment of light as closely as possible",
+  composition: "follow its arrangement and balance of shapes",
+  lighting: "follow its quality, direction and falloff of light",
+  color: "follow its colour relationships",
+  texture: "match its surface texture and grain",
+  subject: "base the subject's appearance on it",
+  environment: "base the setting on it",
+};
+
+function referenceGuidance(refs: AssembleReference[], scene: SceneContent): string {
+  const roles = [...new Set(refs.map((r) => r.role))];
+  const parts = roles.map((role) => {
+    const label = REFERENCE_ROLE_OPTIONS.find((o) => o.key === role)?.label.toLowerCase() ?? role;
+    return `For the ${label} reference${refs.filter((r) => r.role === role).length > 1 ? "s" : ""}, ${ROLE_GUIDANCE[role]}`;
+  });
+  const owns = new Set(roles);
+  const precedence: string[] = [];
+  if (!owns.has("subject") && !owns.has("environment") && !owns.has("composition")) {
+    precedence.push("Do not copy the references' subjects, setting or composition: the scene described in this prompt takes precedence");
+  }
+  if (!owns.has("color") && scene.palette.swatches.length) {
+    precedence.push("Do not copy the references' colours: the colour palette described in this prompt takes precedence");
+  }
+  return join(...parts, ...precedence);
 }
 
 export const DEFAULT_TEMPLATE = SECTION_ORDER.map(([k]) => `{{${k}}}`).join("\n\n");

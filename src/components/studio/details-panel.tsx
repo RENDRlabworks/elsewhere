@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronDown, Copy, History, Star, Trash2, X } from "lucide-react";
+import { ChevronDown, Copy, History, Palette, Star, Trash2, Wand2, X } from "lucide-react";
 import type { Generation, ImageReview, ReferenceImage, StyleProfileVersion } from "@/lib/domain/schemas";
 import { CHARACTER_OPTIONS, COMPOSITION_PRESET_OPTIONS, type ReviewStatus } from "@/lib/domain/vocab";
 import { assetSrc, errorMessage } from "@/lib/client/api";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, MetaLabel, SwatchStrip } from "@/components/common/primitives";
-import { deletePermanently, patchGeneration, STATUS_LABEL } from "@/components/generation/actions";
+import { deletePermanently, patchGeneration, STATUS_LABEL, useStyleReferencePicker } from "@/components/generation/actions";
 import { useStudio } from "@/stores/studio";
 
 export type GenerationDetail = {
@@ -116,6 +116,7 @@ const REVIEW_OPTIONS: { key: ReviewStatus; label: string }[] = [
 export function DetailsPanel({ g, detail }: { g: Generation | null; detail: GenerationDetail | undefined }) {
   const router = useRouter();
   const select = useStudio((s) => s.select);
+  const showStylePicker = useStyleReferencePicker((st) => st.show);
   const title = useMetaField(g ?? ({ id: "" } as Generation), "title", g?.title ?? "");
   const notes = useMetaField(g ?? ({ id: "" } as Generation), "notes", g?.notes ?? "");
   const [promptOpen, setPromptOpen] = React.useState(false);
@@ -163,6 +164,17 @@ export function DetailsPanel({ g, detail }: { g: Generation | null; detail: Gene
           </div>
         </div>
       </div>
+
+      {g.status === "completed" && g.assetId ? (
+        <div className="flex flex-wrap gap-1">
+          <Button size="xs" variant="secondary" onClick={() => router.push(`/studio?recreate=${g.id}`)}>
+            <Wand2 /> Recreate in this style
+          </Button>
+          <Button size="xs" variant="ghost" className="text-text-secondary" onClick={() => showStylePicker([g.id])}>
+            <Palette /> Use as style reference
+          </Button>
+        </div>
+      ) : null}
 
       {g.isDevPlaceholder ? (
         <p className="rounded-md border border-warning/30 bg-warning/5 p-2 text-[11.5px] text-warning">

@@ -67,17 +67,17 @@ export function scaleExaggerationLanguage(v: number) {
     [15, "proportions remain natural and believable"],
     [40, "proportions are subtly heightened"],
     [70, "proportions are impossible yet rendered with complete conviction"],
-    [100, "scale relationships are radically, dreamlike impossible while staying photographically real"],
+    [100, "scale relationships are radically, dreamlike impossible while remaining completely convincing"],
   ]);
 }
 
 export function cameraDistanceLanguage(v: number) {
   return band(v, [
-    [15, "photographed from close range"],
-    [35, "photographed from a moderate distance"],
-    [60, "photographed from a considerable distance"],
-    [85, "photographed from far away, the subject distant"],
-    [100, "photographed from an extreme distance"],
+    [15, "seen from close range"],
+    [35, "seen from a moderate distance"],
+    [60, "seen from a considerable distance"],
+    [85, "seen from far away, the subject distant"],
+    [100, "seen from an extreme distance"],
   ]);
 }
 

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmHost } from "@/components/common/confirm";
 import { CollectionPicker } from "@/components/generation/collection-picker";
+import { StyleReferencePicker } from "@/components/generation/style-reference-picker";
 import { CommandPalette } from "./command-palette";
 import { NAV } from "./nav";
 
@@ -243,6 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <CommandPalette />
       <CollectionPicker />
+      <StyleReferencePicker />
       <ConfirmHost />
     </MotionConfig>
   );

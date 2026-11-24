@@ -16,6 +16,7 @@ import {
   Grid3x3,
   List,
   MoreHorizontal,
+  Palette,
   Play,
   Trash2,
 } from "lucide-react";
@@ -38,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState, IconButton } from "@/components/common/primitives";
-import { downloadMany } from "@/components/generation/actions";
+import { downloadMany, useStyleReferencePicker } from "@/components/generation/actions";
 import { CollectionHeader, saveCollection } from "./collection-header";
 import { CollectionItems, type Entry } from "./collection-items";
 import { ItemFiltersButton } from "./item-filters";
@@ -98,6 +99,12 @@ export function CollectionDetail({ id }: { id: string }) {
   // Drop selections that are no longer visible (removed, moved or filtered out).
   const visibleSelected = React.useMemo(() => new Set([...selected].filter((s) => selectableIds.includes(s))), [selected, selectableIds]);
   const selectedEntries = entries.filter((e) => visibleSelected.has(e.item.id));
+  const showStylePicker = useStyleReferencePicker((s) => s.show);
+  const styleIds = selectedEntries
+    .map((e) => e.item.generation)
+    .filter((g) => g?.status === "completed" && g.assetId)
+    .map((g) => g!.id)
+    .slice(0, 20);
 
   const view: CollectionView = collection?.viewMode ?? "masonry";
   const sortable = !filterCount && (view === "grid" || view === "editorial" || view === "list") && entries.length > 1;
@@ -406,6 +413,9 @@ export function CollectionDetail({ id }: { id: string }) {
         <SelectionBar count={visibleSelected.size} onClear={clearSelection}>
           <BarButton onClick={() => void downloadMany(selectedEntries.map((e) => e.item.generation!.id))}>
             <Download /> Download
+          </BarButton>
+          <BarButton onClick={() => showStylePicker(styleIds)} disabled={!styleIds.length}>
+            <Palette /> Use as style references
           </BarButton>
           <MoveMenu currentId={id} onMove={(c) => void moveSelected(c)} />
           {single ? (

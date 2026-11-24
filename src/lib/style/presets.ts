@@ -192,7 +192,66 @@ const QUIET_ARCHITECTURAL: StylePreset = {
   ]),
 };
 
+/**
+ * Written from the five reference originals of Elsewhere: Volume I. It describes
+ * the look (painterly, grain-textured, one glowing light, tiny silhouettes, vast
+ * darkness) and leaves hue and subject to each scene, so the aesthetic can be
+ * recreated in any colour or with any subject.
+ */
+export const ELSEWHERE_VOLUME_ONE: StylePreset = {
+  key: "elsewhere-volume-i",
+  name: "Elsewhere Volume I",
+  description:
+    "The look of the Volume I originals: soft painterly images under a fine, even grain, one glowing light in vast darkness, and tiny silhouettes dwarfed by impossible scale. Colour and subject come from each scene.",
+  attributes: {
+    medium: "Painterly digital illustration with the restraint of a fine-art print. Not a photograph.",
+    renderingStyle:
+      "Soft, airbrushed forms built from smooth tonal gradients; few hard edges; detail is suggested rather than described; never photographic or hyper-real",
+    photographic:
+      "No photographic sharpness, lens effects or micro-detail. Forms read as simplified painted shapes",
+    exposure:
+      "Very dark and low-key: most of the frame sits in near-black, with a single area of glowing light",
+    contrast: "Soft gradation within the light, falling away smoothly into darkness; no clipped highlights",
+    shadowDepth: "Shadows dissolve into near-black and envelop most of the frame",
+    lighting:
+      "One glowing light source, such as a window, a moon's rim, a low sun or a horizon glow, casting broad, soft beams through haze. Light blooms and scatters; the subject is often rim-lit or silhouetted against it",
+    colorPhilosophy:
+      "A near-monochromatic palette: one hue family plus near-black, with highlights as paler tints of that hue. The hue comes from the scene's palette; keep the image essentially two-tone",
+    saturation: "Muted and dusky overall; the glow can carry slightly richer colour than the surrounding darkness",
+    texture:
+      "An even, fine stippled grain over the entire image, like textured paper or mezzotint, visible in both the darks and the lights",
+    grain: "Pronounced, uniform painterly grain; never clean, smooth digital surfaces",
+    atmosphericDepth: "Dense haze and soft mist; depth is shown by forms fading into glow and darkness",
+    compositionPhilosophy:
+      "Vast negative space, a single monumental element and a tiny subject placed low in the frame; strong diagonals of light; tall vertical frames",
+    subjectTreatment: "Tiny, flat silhouettes with no interior detail, often rim-lit by the light source",
+    environmentalTreatment:
+      "Simple, monumental shapes such as hills, sea, sky, a single window or a moon; impossibly scaled natural elements",
+    emotionalCharacter: "Solitude, quiet wonder, stillness, awe, peaceful melancholy",
+    requiredElements: ["one glowing light source", "an even, fine grain over the whole image", "vast dark negative space"],
+    prohibitedElements: [
+      ...SHARED_PROHIBITED,
+      "photorealism",
+      "crisp photographic detail",
+      "hard-edged digital rendering",
+      "busy or cluttered detail",
+      "multiple light sources",
+      "saturated neon",
+    ],
+    positiveInstructions: "Keep it simple, soft and dark. Let one shape and one light carry the image.",
+    negativeConstraints: "Avoid realistic photography, sharp textures, plastic CGI and cluttered scenes.",
+  },
+  defaultPalette: sw("v1", ["#0b0a14", "#1e1a3a", "#3b2f6b", "#8b6fc0", "#d9c2f0"], [
+    "near black",
+    "deep indigo",
+    "violet",
+    "lavender",
+    "pale lilac",
+  ]),
+};
+
 export const STYLE_PRESETS: StylePreset[] = [
+  ELSEWHERE_VOLUME_ONE,
   ELSEWHERE_ORIGINAL,
   COSMIC_MINIMALISM,
   NOCTURNAL_NATURE,

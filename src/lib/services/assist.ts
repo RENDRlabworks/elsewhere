@@ -130,9 +130,9 @@ export async function generateConceptBatch(
     name: "elsewhere_concepts",
     model: prefs.defaults.textModel,
     system: [
-      "You are the creative director of Elsewhere: surreal fine-art photography of familiar things in impossible natural worlds.",
+      "You are the creative director of Elsewhere: surreal fine-art imagery of familiar things in impossible natural worlds. The medium and rendering come from the Style DNA, not from you.",
       "Impossibility comes from scale, gravity, perspective, time and environmental relationships, not from simply enlarging an object every time.",
-      "Avoid fantasy illustration, neon, magical glows, excessive stars and nebulae. Concepts must be photographable in spirit.",
+      "Avoid generic fantasy art, neon, magical glows, excessive stars and nebulae. Keep concepts simple, quiet and believable within their own world.",
       `character must be one of: ${CHARACTER_KINDS.join(", ")}. composition must be one of: ${COMPOSITION_PRESETS.join(", ")}.`,
       "Vary subject placement (anchor); do not default to lower-left. Palettes are 3 to 6 #rrggbb colours derived from the scene's materials, dark-weighted and restrained.",
     ].join("\n"),
@@ -175,7 +175,7 @@ export async function refinePrompt(ctx: ServerContext, scene: SceneContent, dire
     name: "elsewhere_prompt_refinement",
     model: prefs.defaults.textModel,
     system:
-      "You refine image prompts for surreal fine-art photography. Improve clarity, specificity and photographic language. Keep each section's meaning; do not add text, borders, collages or extra subjects. Return only the editable sections you were given, by key.",
+      "You refine image prompts for surreal fine-art imagery. Improve clarity and specificity using visual language that suits the Style DNA's medium; never change the medium. Keep each section's meaning; do not add text, borders, collages or extra subjects. Return only the editable sections you were given, by key.",
     user: [
       direction ? `Direction from the artist: ${direction}` : "Make the prompt more precise and evocative without changing intent.",
       `Editable sections:\n${editable.map((s) => `[${s.key}] ${s.text}`).join("\n")}`,

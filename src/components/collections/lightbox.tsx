@@ -3,13 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { ChevronLeft, ChevronRight, Download, PenLine, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Palette, PenLine, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/common/primitives";
-import { downloadGeneration } from "@/components/generation/actions";
+import { downloadGeneration, useStyleReferencePicker } from "@/components/generation/actions";
 
 /** A quiet full-screen viewer with prev/next. Escape closes, arrows navigate. */
 export function Lightbox({
@@ -29,6 +29,7 @@ export function Lightbox({
   const g = open ? images[index] : null;
   const n = images.length;
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const showStylePicker = useStyleReferencePicker((s) => s.show);
   const go = (d: number) => {
     if (index === null || !n) return;
     onIndexChange((index + d + n) % n);
@@ -82,6 +83,24 @@ export function Lightbox({
                       <PenLine /> Open in Studio
                     </Link>
                   </Button>
+                  {g.assetId && g.status === "completed" ? (
+                    <>
+                      <Button asChild size="sm" variant="ghost" className="text-white/70 hover:bg-white/10 hover:text-white">
+                        <Link href={`/studio?recreate=${g.id}`}>
+                          <Wand2 /> Recreate in this style
+                        </Link>
+                      </Button>
+                      <IconButton
+                        icon={Palette}
+                        label="Use as style reference"
+                        onClick={() => {
+                          onClose();
+                          showStylePicker([g.id]);
+                        }}
+                        className="text-white/70 hover:bg-white/10 hover:text-white"
+                      />
+                    </>
+                  ) : null}
                   {g.assetId ? (
                     <IconButton icon={Download} label="Download original" onClick={() => downloadGeneration(g)} className="text-white/70 hover:bg-white/10 hover:text-white" />
                   ) : null}

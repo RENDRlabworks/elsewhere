@@ -96,3 +96,11 @@ export const STATUS_LABEL: Record<Generation["status"], string> = {
 };
 
 export const isActive = (s: Generation["status"]) => s === "queued" || s === "generating" || s === "processing";
+
+/** Global "use as style reference" dialog state. */
+export const useStyleReferencePicker = create<{ ids: string[]; open: boolean; show: (ids: string[]) => void; close: () => void }>((set) => ({
+  ids: [],
+  open: false,
+  show: (ids) => set({ ids, open: true }),
+  close: () => set({ open: false }),
+}));

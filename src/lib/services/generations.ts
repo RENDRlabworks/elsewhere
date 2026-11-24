@@ -21,7 +21,8 @@ import type { ServerContext } from "@/lib/server/context";
 import { env } from "@/lib/server/env";
 import { conflict, HttpError, notFound } from "@/lib/server/http";
 import type { Bucket } from "@/lib/storage";
-import { deleteAsset, saveImageAsset } from "./assets";
+import { saveImageAsset } from "./assets";
+import { deleteAssetIfUnused } from "./references";
 import { currentVersion } from "./styles";
 import { buildSearchText, setTags } from "./tags";
 
@@ -570,5 +571,6 @@ export async function deleteGenerationPermanently(ctx: ServerContext, id: string
   await gens.updateWhere({ parentId: id }, { parentId: null });
   await ctx.db.table("prompt_versions").updateWhere({ generationId: id }, { generationId: null });
   await gens.delete(id);
-  await deleteAsset(ctx, gen.assetId);
+  // Keep the file if a Style DNA reference was made from this image.
+  await deleteAssetIfUnused(ctx, gen.assetId);
 }
