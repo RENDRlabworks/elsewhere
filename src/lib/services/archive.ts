@@ -63,7 +63,9 @@ export async function usageSummary(ctx: ServerContext) {
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const rows = await ctx.db.table("usage_records").list({ where: { createdAt: { gte: month } } });
   const sum = (rs: typeof rows) => ({
-    images: rs.filter((r) => r.kind === "image").reduce((a, r) => a + r.images, 0),
+    // Development sketches are free and do not count toward limits.
+    images: rs.filter((r) => r.kind === "image" && r.provider !== "dev").reduce((a, r) => a + r.images, 0),
+    sketches: rs.filter((r) => r.kind === "image" && r.provider === "dev").reduce((a, r) => a + r.images, 0),
     costUsd: rs.reduce((a, r) => a + (r.costUsd ?? 0), 0),
     estimated: rs.some((r) => r.estimated),
     unknownCost: rs.filter((r) => r.costUsd == null && r.provider !== "dev").length,

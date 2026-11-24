@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@/components/common/primitives";
+import { SettingsView } from "@/components/settings/settings-view";
 
 export default function Page() {
-  return <PageHeader title="Settings" description="This destination is being built." />;
+  return <SettingsView />;
 }

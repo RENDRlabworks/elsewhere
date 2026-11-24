@@ -232,7 +232,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>
       <div className="flex h-full">
-        {!fullscreen ? <Sidebar /> : null}
+        {!fullscreen ? (
+          <React.Suspense fallback={<div className="h-full w-[208px] shrink-0 border-r border-border bg-background" />}>
+            <Sidebar />
+          </React.Suspense>
+        ) : null}
         <main className="relative min-w-0 flex-1 overflow-hidden">
           <BootGate>{children}</BootGate>
         </main>

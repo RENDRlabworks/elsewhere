@@ -342,8 +342,9 @@ export function useStudioSession() {
           } else throw err;
         }
         setExtra(null);
+        // Reload first so the new images exist in the list before selecting one.
+        await reload();
         if (res.generations[0]) useStudio.getState().select(res.generations[0].id);
-        void reload();
         invalidate("/api/generations?", "/api/insights");
         // Capability notes are already shown in the Output panel; only surface the unexpected ones.
         for (const n of res.notes) if (!/development sketch|not configured/i.test(n)) toast(n);
@@ -380,8 +381,8 @@ export function useStudioSession() {
       if (!g.jobId) return;
       try {
         const res = await api<{ generations: Generation[] }>(`/api/jobs/${g.jobId}/retry`, { body: { idempotencyKey: newIdempotencyKey() } });
+        await reload();
         if (res.generations[0]) useStudio.getState().select(res.generations[0].id);
-        void reload();
       } catch (err) {
         toast.error(errorMessage(err));
       }

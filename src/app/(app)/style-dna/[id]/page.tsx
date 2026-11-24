@@ -1,7 +1,18 @@
 "use client";
 
-import { PageHeader } from "@/components/common/primitives";
+import { Suspense } from "react";
+import { useParams } from "next/navigation";
+import { StyleEditor } from "@/components/style-dna/style-editor";
+
+function Detail() {
+  const { id } = useParams<{ id: string }>();
+  return <StyleEditor id={id} />;
+}
 
 export default function Page() {
-  return <PageHeader title="Detail" description="This view is being built." />;
+  return (
+    <Suspense fallback={null}>
+      <Detail />
+    </Suspense>
+  );
 }

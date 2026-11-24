@@ -244,7 +244,9 @@ export function Canvas({ session }: { session: StudioSession }) {
 
   const idx = g ? gens.findIndex((x) => x.id === g.id) : -1;
   const done = !!g && g.status === "completed" && !!g.assetId;
-  const compareWith = compareId ? gens.find((x) => x.id === compareId) : g?.parentId ? gens.find((x) => x.id === g.parentId) : gens[idx + 1];
+  const compareWith = compareId
+    ? gens.find((x) => x.id === compareId)
+    : ((g?.parentId ? gens.find((x) => x.id === g.parentId) : undefined) ?? gens[idx + 1] ?? gens[idx - 1]);
   const canCompare = done && !!compareWith?.assetId && compareWith.id !== g?.id;
 
   const step = React.useCallback(

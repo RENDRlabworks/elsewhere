@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@/components/common/primitives";
+import { ExploreView } from "@/components/explore/explore-view";
 
 export default function Page() {
-  return <PageHeader title="Explore" description="This destination is being built." />;
+  return <ExploreView />;
 }
