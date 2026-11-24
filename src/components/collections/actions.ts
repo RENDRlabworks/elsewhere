@@ -22,7 +22,7 @@ export async function deleteCollection(c: Pick<Collection, "id" | "name" | "isSe
   const ok = await confirmAction({
     title: `Delete "${c.name}"?`,
     description: c.isSeed
-      ? "The collection, its ordering and its open scene slots are removed. Every image stays in the archive, and the scenes stay available in the Studio."
+      ? "The collection, its ordering and its open scene slots are removed. Every image stays in the archive, and the scenes stay available in Create."
       : "The collection and its ordering are removed. Every image stays in the archive.",
     confirmLabel: "Delete collection",
     destructive: true,

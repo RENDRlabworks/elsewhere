@@ -45,7 +45,7 @@ export function StyleReferencePicker() {
       invalidate("/api/references", `/api/styles/${profile.id}`);
       const n = res.references.length;
       toast.success(`Added ${n} reference${n === 1 ? "" : "s"} to ${profile.name}`, {
-        description: "Switch them on in the Studio References panel whenever this Style DNA is selected.",
+        description: "Switch them on under References in Create whenever this look is selected.",
         action: { label: "View", onClick: () => router.push(`/style-dna/${profile.id}?tab=references`) },
       });
       close();
@@ -62,15 +62,15 @@ export function StyleReferencePicker() {
         <DialogHeader>
           <DialogTitle className="text-[14px] font-medium">Use as style reference</DialogTitle>
           <DialogDescription className="text-[12.5px]">
-            {ids.length === 1 ? "This image" : `These ${ids.length} images`} will be attached to the Style DNA&apos;s reference board and
+            {ids.length === 1 ? "This image" : `These ${ids.length} images`} will be attached to the look&apos;s reference board and
             sent to the model with new generations. The image itself is not copied or changed.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <Field label="Style DNA">
+          <Field label="Look">
             <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger size="sm" className="h-8 w-full text-[12.5px]" aria-label="Style DNA">
-                <SelectValue placeholder="Choose a Style DNA" />
+              <SelectTrigger size="sm" className="h-8 w-full text-[12.5px]" aria-label="Look">
+                <SelectValue placeholder="Choose a look" />
               </SelectTrigger>
               <SelectContent>
                 {profiles.map((p) => (

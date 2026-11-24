@@ -399,7 +399,7 @@ function SlotRow({ entry, collectionId, handle }: { entry: Entry; collectionId: 
         </Button>
         {entry.item.sceneId ? (
           <Button asChild size="icon-xs" variant="ghost" className="text-text-muted">
-            <Link href={`/studio?scene=${entry.item.sceneId}`} aria-label="Open scene in Studio" title="Open scene in Studio">
+            <Link href={`/studio?scene=${entry.item.sceneId}`} aria-label="Open scene in Create" title="Open scene in Create">
               <PenLine />
             </Link>
           </Button>

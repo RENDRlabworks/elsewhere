@@ -42,7 +42,7 @@ export async function setActiveProfile(p: StyleProfile) {
   try {
     await useApp.getState().updatePreferences({ activeStyleProfileId: p.id });
     runCommand("style-changed");
-    toast.success(`Active Style DNA: ${p.name}`);
+    toast.success(`Active look: ${p.name}`);
   } catch (err) {
     toast.error("Could not set the active profile", { description: errorMessage(err) });
   }

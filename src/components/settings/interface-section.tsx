@@ -50,7 +50,7 @@ export function InterfaceSection({ prefs }: { prefs: Preferences }) {
           onChange={(galleryDensity) => void save({ galleryDensity })}
         />
       </SettingRow>
-      <SettingRow label="Canvas background" hint="The default backdrop behind images in the Studio.">
+      <SettingRow label="Canvas background" hint="The default backdrop behind images in Create.">
         <div role="radiogroup" aria-label="Canvas background" className="flex gap-1.5">
           {CANVAS.map((c) => (
             <label
@@ -105,8 +105,8 @@ export function InterfaceSection({ prefs }: { prefs: Preferences }) {
 export function AutosaveSection({ prefs }: { prefs: Preferences }) {
   const a = prefs.autosave;
   return (
-    <SettingsSection id="autosave" title="Autosave" description="Scenes in the Studio save themselves while you work.">
-      <SettingRow label="Autosave scenes" hint="When off, use Save in the Studio to keep changes." htmlFor="set-autosave">
+    <SettingsSection id="autosave" title="Autosave" description="Scenes in Create save themselves while you work.">
+      <SettingRow label="Autosave scenes" hint="When off, use Save in Create to keep changes." htmlFor="set-autosave">
         <Switch id="set-autosave" checked={a.enabled} onCheckedChange={(enabled) => void savePreferences({ autosave: { enabled } })} />
       </SettingRow>
       <SettingRow label="Delay" hint="How long to wait after the last edit before saving. 300 to 10000 ms." htmlFor="set-autosave-delay">

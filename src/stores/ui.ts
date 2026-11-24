@@ -18,7 +18,8 @@ type UiState = {
 export const useUi = create<UiState>((set) => ({
   sidebarCollapsed: false,
   commandOpen: false,
-  inspectorOpen: true,
+  // Image details and the prompt open on request; the Direct panel is always there.
+  inspectorOpen: false,
   scenePanelOpen: true,
   fullscreen: false,
   setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),

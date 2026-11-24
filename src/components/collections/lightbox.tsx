@@ -80,7 +80,7 @@ export function Lightbox({
                 <div className="flex shrink-0 items-center gap-1">
                   <Button asChild size="sm" variant="ghost" className="text-white/70 hover:bg-white/10 hover:text-white">
                     <Link href={`/studio?generation=${g.id}`}>
-                      <PenLine /> Open in Studio
+                      <PenLine /> Open in Create
                     </Link>
                   </Button>
                   {g.assetId && g.status === "completed" ? (

@@ -14,7 +14,7 @@ import {
   LoaderCircle,
   Maximize,
   Minimize,
-  PanelLeft,
+  Info,
   PanelRight,
   RotateCcw,
   Scan,
@@ -172,7 +172,7 @@ function EmptyCanvas({ session }: { session: StudioSession }) {
       <div className="text-center">
         <div className="text-[13px] text-foreground">{scene.title || "Untitled scene"}</div>
         <div className="mt-1 max-w-sm text-[12.5px] text-text-muted">
-          Direct the scene on the left. The frame above previews the subject&apos;s placement and palette.
+          Pick a starting image and set the scene on the right. The frame above previews the subject&apos;s placement and palette.
         </div>
       </div>
       <Button onClick={() => void session.generate()} disabled={session.generating}>
@@ -346,69 +346,76 @@ export function Canvas({ session }: { session: StudioSession }) {
   return (
     <div className="flex h-full min-w-0 flex-col bg-background">
       {/* Header */}
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-2">
-        {!fullscreen ? <IconButton icon={PanelLeft} label="Toggle scene panel" active={scenePanelOpen} onClick={toggleScenePanel} /> : null}
-        <div className="flex min-w-0 flex-1 items-baseline gap-2 px-1">
+      <div className="flex h-12 shrink-0 items-center gap-2 px-3">
+        <div className="flex min-w-0 flex-1 items-baseline gap-3 px-1">
           {seriesIndex ? <span className="font-mono text-[11px] text-text-muted">{String(seriesIndex).padStart(2, "0")}</span> : null}
-          <span className="truncate text-[13px] text-foreground">{scene.title || "Untitled scene"}</span>
+          <span className="truncate text-[15px] font-medium text-foreground">{scene.title || "Untitled scene"}</span>
           <SaveIndicator />
         </div>
-        <div className="flex items-center gap-0.5">
-          <IconButton icon={ZoomOut} label="Zoom out" disabled={!done} onClick={() => setZoom({ mode: "scale", scale: Math.max(0.05, scale / 1.25) })} />
-          <button
-            type="button"
-            disabled={!done}
-            onClick={() => setZoom(zoom.mode === "fit" ? { mode: "scale", scale: 1 } : { mode: "fit" })}
-            className="w-12 font-mono text-[11px] text-text-muted tabular-nums hover:text-text-secondary disabled:opacity-40"
-            aria-label="Toggle fit and actual size"
-          >
-            {done ? `${Math.round(scale * 100)}%` : "n/a"}
-          </button>
-          <IconButton icon={ZoomIn} label="Zoom in" disabled={!done} onClick={() => setZoom({ mode: "scale", scale: Math.min(8, scale * 1.25) })} />
-          <IconButton icon={Scan} label="Fit to canvas" shortcut="0" disabled={!done} active={zoom.mode === "fit"} onClick={() => setZoom({ mode: "fit" })} />
-          <IconButton icon={Expand} label="Actual size" shortcut="1" disabled={!done} active={zoom.mode === "scale" && scale === 1} onClick={() => setZoom({ mode: "scale", scale: 1 })} />
-          <Separator orientation="vertical" className="mx-1 h-4" />
+        <div className="flex items-center gap-1">
           <Popover>
             <PopoverTrigger asChild>
-              <button type="button" aria-label="Canvas background" className="flex size-7 items-center justify-center rounded-md hover:bg-interactive">
-                <span className={cn("size-3.5 rounded-sm border border-border", CANVAS_BACKGROUNDS[bg]?.className)} />
-              </button>
+              <Button variant="ghost" size="sm" className="font-mono text-[12px] text-text-secondary tabular-nums" disabled={!done} aria-label="View and zoom">
+                {done ? `${Math.round(scale * 100)}%` : "View"}
+              </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="end">
-              <div className="flex gap-1.5">
-                {Object.entries(CANVAS_BACKGROUNDS).map(([k, v]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setBg(k)}
-                    aria-label={`${v.label} background`}
-                    aria-pressed={bg === k}
-                    className={cn("size-6 rounded-sm border", v.className, bg === k ? "border-foreground" : "border-border")}
-                  />
-                ))}
+            <PopoverContent className="w-56 space-y-3 p-3" align="end">
+              <div className="flex items-center justify-between gap-1">
+                <IconButton icon={ZoomOut} label="Zoom out" onClick={() => setZoom({ mode: "scale", scale: Math.max(0.05, scale / 1.25) })} />
+                <IconButton icon={Scan} label="Fit to canvas" shortcut="0" active={zoom.mode === "fit"} onClick={() => setZoom({ mode: "fit" })} />
+                <IconButton icon={Expand} label="Actual size" shortcut="1" active={zoom.mode === "scale" && scale === 1} onClick={() => setZoom({ mode: "scale", scale: 1 })} />
+                <IconButton icon={ZoomIn} label="Zoom in" onClick={() => setZoom({ mode: "scale", scale: Math.min(8, scale * 1.25) })} />
+              </div>
+              <div>
+                <div className="label-meta mb-2">Background</div>
+                <div className="flex gap-1.5">
+                  {Object.entries(CANVAS_BACKGROUNDS).map(([k, v]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setBg(k)}
+                      aria-label={`${v.label} background`}
+                      aria-pressed={bg === k}
+                      className={cn("size-6 rounded-sm border", v.className, bg === k ? "border-foreground" : "border-border")}
+                    />
+                  ))}
+                </div>
               </div>
             </PopoverContent>
           </Popover>
-          <IconButton
-            icon={compareMode === "side" ? Columns2 : SplitSquareHorizontal}
-            label={compareMode === "off" ? "Compare" : "Stop comparing"}
-            shortcut="C"
-            active={compareMode !== "off"}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("text-text-secondary", compareMode !== "off" && "bg-interactive text-foreground")}
             disabled={!canCompare}
             onClick={toggleCompare}
-          />
+            aria-pressed={compareMode !== "off"}
+            aria-keyshortcuts="C"
+          >
+            {compareMode === "side" ? <Columns2 /> : <SplitSquareHorizontal />} Compare
+          </Button>
           {compareMode !== "off" ? (
-            <button type="button" className="px-1 text-[11px] text-text-muted hover:text-text-secondary" onClick={() => setCompare(compareWith?.id ?? null, compareMode === "slider" ? "side" : "slider")}>
+            <button type="button" className="px-1 text-[12px] text-text-muted hover:text-text-secondary" onClick={() => setCompare(compareWith?.id ?? null, compareMode === "slider" ? "side" : "slider")}>
               {compareMode === "slider" ? "Side by side" : "Slider"}
             </button>
           ) : null}
+          {!fullscreen ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn("text-text-secondary", inspectorOpen && "bg-interactive text-foreground")}
+              onClick={toggleInspector}
+              aria-pressed={inspectorOpen}
+              aria-keyshortcuts="I"
+            >
+              <Info /> Details
+            </Button>
+          ) : null}
           <IconButton icon={fullscreen ? Minimize : Maximize} label={fullscreen ? "Exit fullscreen" : "Fullscreen"} shortcut="⇧F" onClick={toggleFullscreen} />
-          {!fullscreen ? <IconButton icon={PanelRight} label="Toggle inspector" shortcut="I" active={inspectorOpen} onClick={toggleInspector} /> : null}
+          {!fullscreen ? (
+            <IconButton icon={PanelRight} label={scenePanelOpen ? "Hide controls" : "Show controls"} active={scenePanelOpen} onClick={toggleScenePanel} />
+          ) : null}
         </div>
-        <Button size="sm" className="ml-1" onClick={() => void session.generate()} disabled={session.generating} aria-keyshortcuts="Meta+Enter">
-          {session.generating ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-          Generate{scene.output.count > 1 ? ` ${scene.output.count}` : ""}
-        </Button>
       </div>
 
       {/* Stage */}

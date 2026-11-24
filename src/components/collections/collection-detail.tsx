@@ -377,7 +377,7 @@ export function CollectionDetail({ id }: { id: string }) {
                 icon={ImageIcon}
                 className="py-24"
                 title="This collection is empty"
-                description="Select images in the Archive or the Studio and choose Add to collection. They will appear here in the order you add them."
+                description="Select images in the Library or in Create and choose Add to collection. They will appear here in the order you add them."
                 action={
                   <Button asChild size="sm" variant="secondary">
                     <Link href="/archive">Browse the archive</Link>

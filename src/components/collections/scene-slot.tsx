@@ -110,17 +110,17 @@ export function SceneSlot({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button asChild size="icon-xs" variant="ghost" className="text-text-secondary">
-                    <Link href={`/studio?scene=${item.sceneId}`} aria-label="Open scene in Studio">
+                    <Link href={`/studio?scene=${item.sceneId}`} aria-label="Open scene in Create">
                       <PenLine />
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Open scene in Studio</TooltipContent>
+                <TooltipContent>Open scene in Create</TooltipContent>
               </Tooltip>
             ) : (
               <Button asChild size="sm" variant="ghost" className="text-text-secondary">
                 <Link href={`/studio?scene=${item.sceneId}`}>
-                  <PenLine /> Open scene in Studio
+                  <PenLine /> Open scene in Create
                 </Link>
               </Button>
             )

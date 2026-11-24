@@ -196,7 +196,7 @@ export function DetailsPanel({ g, detail }: { g: Generation | null; detail: Gene
             </Row>
           ) : null}
           {g.styleSnapshot ? (
-            <Row label="Style DNA">
+            <Row label="Look">
               {g.styleProfileId ? <Link href={`/style-dna/${g.styleProfileId}`} className="hover:text-foreground">{g.styleSnapshot.name}</Link> : g.styleSnapshot.name}
               {version ? <span className="ml-1 font-mono text-text-muted">v{version.version}</span> : null}
             </Row>

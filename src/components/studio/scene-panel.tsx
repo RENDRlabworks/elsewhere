@@ -65,23 +65,32 @@ function CharacterEditor({
   onChange,
   compact,
   slot = "subject",
+  part = "all",
 }: {
   value: Character;
   onChange: (c: Character) => void;
   compact?: boolean;
   slot?: "subject" | "secondarySubject";
+  /** essentials: kind, description and action. details: everything else. */
+  part?: "all" | "essentials" | "details";
 }) {
   const set = (p: Partial<Character>) => onChange({ ...value, ...p });
   // A typed description is followed through the scene once, when the field loses focus.
   const labelAtFocus = React.useRef<Character | null>(null);
   const isHuman = HUMAN_KINDS.includes(value.kind);
+  const essentials = part !== "details";
+  const details = part !== "essentials";
   if (value.kind === "none") {
-    return (
+    return essentials ? (
       <SelectField label="Character" value={value.kind} options={CHARACTER_OPTIONS} onChange={(kind) => set({ kind })} hint="The environment itself is the subject." />
+    ) : (
+      <p className="text-[12px] text-text-muted">No character: the environment itself is the subject.</p>
     );
   }
   return (
     <div className="space-y-3">
+      {essentials ? (
+      <>
       <div className="grid grid-cols-2 gap-2">
         <SelectField label="Character" value={value.kind} options={CHARACTER_OPTIONS} onChange={(kind) => set({ kind })} />
         <TextField
@@ -110,6 +119,10 @@ function CharacterEditor({
         suggestions={characterSuggestions("action", value.kind)}
         trailing={<IdeaButton field="action" slot={slot} label="Action" />}
       />
+      </>
+      ) : null}
+      {details ? (
+      <>
       {!compact ? <TextField label="Pose" value={value.pose} onChange={(pose) => set({ pose })} placeholder="optional" suggestions={characterSuggestions("pose", value.kind)} trailing={<IdeaButton field="pose" slot={slot} label="Pose" />} /> : null}
       <div className="grid grid-cols-2 gap-2">
         <SelectField label="Direction" value={value.direction} options={DIRECTION_OPTIONS} onChange={(direction) => set({ direction })} />
@@ -145,17 +158,19 @@ function CharacterEditor({
           trailing={<IdeaButton field="clothing" slot={slot} label={value.kind === "object" ? "Material and finish" : "Clothing"} />}
         />
       ) : null}
+      </>
+      ) : null}
     </div>
   );
 }
 
-function SceneSection() {
+export function SceneSection({ withStyle = true, defaultOpen }: { withStyle?: boolean; defaultOpen?: boolean } = {}) {
   const { scene, update, lock } = useField();
   const profiles = useProfiles();
   const { data: templates } = useResource<{ templates: { id: string; name: string }[] }>("/api/prompt-templates");
   const profile = profiles.find((p) => p.id === scene.styleProfileId);
   return (
-    <PanelSection id="scene" title="Scene">
+    <PanelSection id="scene" title="Scene" defaultOpen={defaultOpen}>
       <TextField label="Title" value={scene.title} onChange={(title) => update({ title })} {...lock("title")} trailing={<IdeaButton field="title" label="Title" />} />
       <TextField
         label="Description"
@@ -176,17 +191,18 @@ function SceneSection() {
         placeholder="Anything the structured controls do not capture."
         trailing={<IdeaButton field="freeDirection" label="Free direction" />}
       />
+      {withStyle ? (
       <Field
-        label="Style DNA"
+        label="Look"
         trailing={profile?.locked ? <Lock className="size-3 text-warning" aria-label="Profile locked" /> : null}
         hint={profile ? <Link href={`/style-dna/${profile.id}`} className="hover:text-text-secondary">v{profile.currentVersion} · edit profile</Link> : "No style applied"}
       >
         <Select value={scene.styleProfileId ?? "none"} onValueChange={(v) => update({ styleProfileId: v === "none" ? null : v })}>
-          <SelectTrigger size="sm" className="h-8 w-full text-[12.5px]" aria-label="Style DNA">
+          <SelectTrigger size="sm" className="h-8 w-full text-[12.5px]" aria-label="Look">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Style DNA</SelectItem>
+            <SelectItem value="none">No look</SelectItem>
             {profiles
               .filter((p) => !p.archived || p.id === scene.styleProfileId)
               .map((p) => (
@@ -197,6 +213,7 @@ function SceneSection() {
           </SelectContent>
         </Select>
       </Field>
+      ) : null}
       {templates?.templates.length ? (
         <Field label="Prompt template">
           <Select value={scene.promptTemplateId ?? "default"} onValueChange={(v) => update({ promptTemplateId: v === "default" ? null : v })}>
@@ -223,6 +240,40 @@ function onCharacter(slot: "subject" | "secondarySubject", next: Character) {
   const prev = useStudio.getState().scene[slot];
   if (prev && prev.kind !== next.kind) applySubjectChange(slot, next);
   else useStudio.getState().update({ [slot]: next });
+}
+
+/** Kind, description and action of the main subject, for the Subject chip. */
+export function SubjectEssentials() {
+  const scene = useStudio((s) => s.scene);
+  return <CharacterEditor part="essentials" value={scene.subject} onChange={(subject) => onCharacter("subject", subject)} />;
+}
+
+/** Everything about the subject beyond the essentials, plus a secondary subject. */
+export function SubjectDetailsSection({ defaultOpen }: { defaultOpen?: boolean } = {}) {
+  const { scene, update, lock } = useField();
+  const l = lock("subject");
+  return (
+    <PanelSection id="subject-details" title="Subject details" defaultOpen={defaultOpen} aside={<LockChip {...l} label="subject" />}>
+      <CharacterEditor part="details" value={scene.subject} onChange={(subject) => onCharacter("subject", subject)} />
+      <div className="border-t border-border pt-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-text-secondary">Secondary subject</span>
+          <Switch
+            checked={!!scene.secondarySubject}
+            onCheckedChange={(on) => update({ secondarySubject: on ? characterSchema.parse({ kind: "bird", relationship: "observing" }) : null })}
+            aria-label="Include a secondary subject"
+          />
+        </div>
+        {scene.secondarySubject ? (
+          <div className="mt-3">
+            <CharacterEditor compact slot="secondarySubject" value={scene.secondarySubject} onChange={(secondarySubject) => onCharacter("secondarySubject", secondarySubject)} />
+          </div>
+        ) : (
+          <p className="mt-1 text-[11px] text-text-muted">Only when the scene genuinely needs two subjects.</p>
+        )}
+      </div>
+    </PanelSection>
+  );
 }
 
 function SubjectSection() {
@@ -256,7 +307,7 @@ function SubjectSection() {
   );
 }
 
-function LockChip({ locked, onToggleLock, label }: { locked: boolean; onToggleLock: () => void; label: string }) {
+export function LockChip({ locked, onToggleLock, label }: { locked: boolean; onToggleLock: () => void; label: string }) {
   return (
     <button
       type="button"
@@ -271,6 +322,50 @@ function LockChip({ locked, onToggleLock, label }: { locked: boolean; onToggleLo
       <Lock className="size-2.5" />
       {locked ? "Locked" : "Lock"}
     </button>
+  );
+}
+
+/** Where the scene happens, for the Setting chip. */
+export function SettingEssentials() {
+  const { scene, update, lock } = useField();
+  return (
+    <>
+      <TextField label="Environment" value={scene.environment} onChange={(environment) => update({ environment })} suggestions={ENVIRONMENT_SUGGESTIONS} placeholder="an ancient pine forest at the edge of a cliff" {...lock("environment")} trailing={<IdeaButton field="environment" label="Environment" />} />
+      <div className="grid grid-cols-2 gap-2">
+        <TextField label="Natural element" value={scene.naturalElement} onChange={(naturalElement) => update({ naturalElement })} suggestions={NATURAL_ELEMENT_SUGGESTIONS} {...lock("naturalElement")} trailing={<IdeaButton field="naturalElement" label="Natural element" />} />
+        <SelectField label="Time of day" value={scene.timeOfDay} options={TIME_OPTIONS} onChange={(timeOfDay) => update({ timeOfDay })} {...lock("timeOfDay")} />
+      </div>
+    </>
+  );
+}
+
+/** The impossible element, for the Phenomenon chip. */
+export function PhenomenonEssentials() {
+  const { scene, update, lock } = useField();
+  return (
+    <TextField
+      label="Impossible phenomenon"
+      value={scene.phenomenon}
+      onChange={(phenomenon) => update({ phenomenon })}
+      multiline
+      rows={3}
+      placeholder="an inverted mountain range hanging from the sky"
+      {...lock("phenomenon")}
+      trailing={<IdeaButton field="phenomenon" label="Impossible phenomenon" />}
+    />
+  );
+}
+
+/** Materials, light, air and mood: the finer world settings. */
+export function WorldDetailsSection({ defaultOpen }: { defaultOpen?: boolean } = {}) {
+  const { scene, update, lock } = useField();
+  return (
+    <PanelSection id="world-details" title="Light, air and mood" defaultOpen={defaultOpen}>
+      <TextField label="Lighting" value={scene.lighting} onChange={(lighting) => update({ lighting })} suggestions={LIGHTING_SUGGESTIONS} placeholder="soft moonlight from behind the subject" {...lock("lighting")} trailing={<IdeaButton field="lighting" label="Lighting" />} />
+      <TextField label="Atmosphere" value={scene.atmosphere} onChange={(atmosphere) => update({ atmosphere })} suggestions={ATMOSPHERE_SUGGESTIONS} {...lock("atmosphere")} trailing={<IdeaButton field="atmosphere" label="Atmosphere" />} />
+      <TextField label="Materials" value={scene.materials} onChange={(materials) => update({ materials })} suggestions={MATERIAL_SUGGESTIONS} placeholder="wet basalt, velvet moss" {...lock("materials")} trailing={<IdeaButton field="materials" label="Materials" />} />
+      <TextField label="Emotional tone" value={scene.emotionalTone} onChange={(emotionalTone) => update({ emotionalTone })} suggestions={EMOTIONAL_TONE_SUGGESTIONS} {...lock("emotionalTone")} trailing={<IdeaButton field="emotionalTone" label="Emotional tone" />} />
+    </PanelSection>
   );
 }
 
@@ -301,7 +396,7 @@ function WorldSection() {
   );
 }
 
-function CompositionSection() {
+export function CompositionSection({ defaultOpen }: { defaultOpen?: boolean } = {}) {
   const { scene, update, lock } = useField();
   const sceneId = useStudio((s) => s.sceneId);
   const { data } = useResource<{ insights: CollectionInsights }>(sceneId ? `/api/insights?sceneId=${sceneId}` : "/api/insights");
@@ -311,7 +406,7 @@ function CompositionSection() {
   const suggestions = data?.insights.suggestions.filter((s) => s.kind === "composition" && s.key !== c.preset).slice(0, 3) ?? [];
   const l = lock("composition");
   return (
-    <PanelSection id="composition" title="Composition and scale" aside={<LockChip {...l} label="composition" />}>
+    <PanelSection id="composition" title="Composition and scale" defaultOpen={defaultOpen} aside={<LockChip {...l} label="composition" />}>
       <CompositionPad
         value={c}
         aspectRatio={scene.output.aspectRatio}
@@ -374,6 +469,24 @@ function CompositionSection() {
   );
 }
 
+/** The palette editor alone, for the Colour chip. */
+export function PaletteEssentials({ session }: { session: StudioSession }) {
+  const { scene, update } = useField();
+  const sceneText = [scene.environment, scene.phenomenon, scene.materials, scene.naturalElement, scene.description].join(" ");
+  const refs = session.references
+    .filter((r) => r.asset?.dominantColors.length && (r.profileId === scene.styleProfileId || scene.referenceIds.includes(r.id)))
+    .map((r) => ({ id: r.id, label: r.label, hexes: r.asset!.dominantColors }));
+  return (
+    <PaletteEditor
+      value={scene.palette}
+      onChange={(palette) => update({ palette: { ...scene.palette, ...palette } })}
+      sceneText={sceneText}
+      styleHexes={session.profile?.defaultPalette.map((s) => s.hex)}
+      references={refs}
+    />
+  );
+}
+
 function PaletteSection({ session }: { session: StudioSession }) {
   const { scene, update, lock } = useField();
   const sceneText = [scene.environment, scene.phenomenon, scene.materials, scene.naturalElement, scene.description].join(" ");
@@ -394,7 +507,7 @@ function PaletteSection({ session }: { session: StudioSession }) {
   );
 }
 
-function ReferencesSection({ session }: { session: StudioSession }) {
+export function ReferencesSection({ session }: { session: StudioSession }) {
   const { scene, update } = useField();
   const pool = session.references.filter((r) => r.profileId === scene.styleProfileId || scene.referenceIds.includes(r.id));
   const supports = !!session.model?.capabilities.referenceImages;
@@ -430,7 +543,7 @@ function ReferencesSection({ session }: { session: StudioSession }) {
         </div>
       ) : (
         <p className="text-[11.5px] text-text-muted">
-          No references on this Style DNA yet.{" "}
+          No references on this look yet.{" "}
           {scene.styleProfileId ? (
             <Link href={`/style-dna/${scene.styleProfileId}`} className="text-text-secondary hover:underline">
               Add references

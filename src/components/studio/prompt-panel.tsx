@@ -285,7 +285,7 @@ function RefineDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
         <DialogHeader>
           <DialogTitle className="text-[14px] font-medium">Refine prompt with AI</DialogTitle>
           <DialogDescription className="text-[12.5px]">
-            Proposes clearer wording. Locked Style DNA attributes and locked scene fields are restored verbatim. Nothing changes until you apply it.
+            Proposes clearer wording. Locked look attributes and locked scene fields are restored verbatim. Nothing changes until you apply it.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2">

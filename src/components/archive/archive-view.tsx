@@ -17,6 +17,7 @@ import { confirmAction } from "@/components/common/confirm";
 import { GenerationTile } from "@/components/generation/generation-tile";
 import { downloadMany, GENERATION_KEYS, isActive, useCollectionPicker, useStyleReferencePicker } from "@/components/generation/actions";
 import { BarButton, SelectionBar } from "@/components/collections/selection-bar";
+import { LibraryTabs } from "@/components/common/library-tabs";
 import { ArchiveFilters, SearchField } from "./archive-toolbar";
 import { apiBase, pageKey, PAGE_SIZE, useArchiveQuery } from "./query";
 
@@ -221,27 +222,23 @@ export function ArchiveView() {
         <PageLoader key={k} url={k} onPage={onPage} onError={onError} />
       ))}
 
-      <header className="shrink-0 border-b border-border px-8 pt-7 pb-4">
+      <header className="shrink-0 px-8 pt-8 pb-4">
         <div className="flex items-end justify-between gap-6">
           <div className="min-w-0">
-            <h1 className="text-[17px] font-medium text-foreground">Archive</h1>
-            <p className="mt-1 text-[13px] text-text-secondary" aria-live="polite">
-              {initialLoading ? (
-                <span className="text-text-muted">Loading history…</span>
-              ) : (
-                <>
-                  <span className="font-mono text-[12px] text-foreground tabular-nums">{total.toLocaleString()}</span>{" "}
-                  {hasAny ? `image${total === 1 ? "" : "s"} match` : `image${total === 1 ? "" : "s"} in your history`}
-                </>
-              )}
-            </p>
+            <h1 className="text-[24px] leading-8 font-medium tracking-[-0.01em] text-foreground">Library</h1>
+            <div className="mt-4">
+              <LibraryTabs active="images" imageCount={initialLoading ? null : total} />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pb-1.5">
             <SearchField value={search} onChange={setSearch} inputRef={searchRef} />
             <DensityToggle value={density} onChange={(d) => void updatePreferences({ ui: { galleryDensity: d } }).catch((err) => toast.error(errorMessage(err)))} />
           </div>
         </div>
-        <div className="mt-4">
+        <p className="sr-only" aria-live="polite">
+          {initialLoading ? "Loading history" : `${total} ${hasAny ? "matching images" : "images in your library"}`}
+        </p>
+        <div className="mt-5">
           <ArchiveFilters
             query={query}
             update={update}
@@ -303,7 +300,7 @@ export function ArchiveView() {
                 description="Everything you generate or import is kept here, including rejected and failed attempts."
                 action={
                   <Button asChild size="sm">
-                    <Link href="/studio">Open the Studio</Link>
+                    <Link href="/studio">Start creating</Link>
                   </Button>
                 }
               />

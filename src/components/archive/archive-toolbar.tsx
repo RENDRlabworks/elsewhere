@@ -85,7 +85,7 @@ export function ArchiveFilters({
         mono
       />
       <FacetSelect
-        label="Style DNA"
+        label="Look"
         value={query.style}
         allLabel="All styles"
         options={(facets?.styles ?? []).map((f) => ({ value: f.value, label: styleName(f.value), count: f.count }))}

@@ -147,7 +147,7 @@ function InsightsBody({ ins }: { ins: CollectionInsights }) {
                 </div>
                 <Button asChild size="xs" variant="ghost" className="shrink-0 text-text-secondary">
                   <Link href={`/studio?suggest=${encodeURIComponent(`${s.kind}:${s.key}`)}`}>
-                    Try in Studio <ArrowUpRight />
+                    Try in Create <ArrowUpRight />
                   </Link>
                 </Button>
               </li>

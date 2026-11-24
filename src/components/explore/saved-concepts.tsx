@@ -44,7 +44,7 @@ export function SavedConcepts() {
   function load(scene: Scene) {
     const concept = sceneToConcept(scene);
     if (!concept) {
-      toast.error("This concept cannot be loaded into Explore", { description: "Open it in the Studio instead." });
+      toast.error("This concept cannot be loaded into Ideas", { description: "Open it in Create instead." });
       return;
     }
     setCurrent(makeEntry(concept, { kind: "saved", sceneId: scene.id }));
@@ -73,7 +73,7 @@ export function SavedConcepts() {
         <EmptyState
           icon={Bookmark}
           title="No saved concepts"
-          description="Save a concept to keep it here. Saved concepts open in the Studio as scenes, ready to direct."
+          description="Save a concept to keep it here. Saved concepts open in Create as scenes, ready to direct."
           className="rounded-md border border-dashed border-border py-10"
         />
       ) : (
@@ -95,7 +95,7 @@ export function SavedConcepts() {
                 <div className="flex items-center">
                   <Button asChild variant="ghost" size="xs" className="text-text-secondary hover:text-foreground">
                     <Link href={`/studio?scene=${scene.id}`}>
-                      Open in Studio <ArrowUpRight />
+                      Open in Create <ArrowUpRight />
                     </Link>
                   </Button>
                   <IconButton icon={Trash2} label="Remove concept" size="icon-xs" onClick={() => void remove(scene)} />

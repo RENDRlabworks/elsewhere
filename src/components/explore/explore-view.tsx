@@ -12,6 +12,7 @@ import { useApp, usePreferences, useProfiles } from "@/stores/app";
 import { cn } from "@/lib/utils";
 import { MetaLabel, PageHeader } from "@/components/common/primitives";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -167,7 +168,7 @@ export function ExploreView() {
       invalidate("/api/scenes");
       router.push(`/studio?scene=${scene.id}`);
     } catch (err) {
-      toast.error("Could not open the concept in the Studio", { description: errorMessage(err) });
+      toast.error("Could not open the concept in Create", { description: errorMessage(err) });
       setBusy(null);
     }
   }
@@ -182,13 +183,13 @@ export function ExploreView() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
-        title="Explore"
-        description="Discover scene concepts without generating images. Lock what is working, reshuffle the rest, then direct it in the Studio."
+        title="Ideas"
+        description="Discover scene concepts without generating images. Lock what is working, reshuffle the rest, then direct it in Create."
         actions={
           <>
             <div className="flex items-center gap-2">
-              <Label htmlFor="explore-style" className="text-[12px] font-normal text-text-secondary">
-                Style DNA
+              <Label htmlFor="explore-style" className="text-[12.5px] font-normal text-text-secondary">
+                Look
               </Label>
               <Select value={validStyleId ?? NONE} onValueChange={(v) => setStyleProfileId(v === NONE ? null : v)}>
                 <SelectTrigger id="explore-style" size="sm" className="h-7 w-52 text-[12px]">
@@ -203,7 +204,7 @@ export function ExploreView() {
                   ))}
                   <SelectSeparator />
                   <SelectItem value={NONE} className="text-[12.5px]">
-                    No Style DNA
+                    No look
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -225,32 +226,33 @@ export function ExploreView() {
               <ActionButton
                 primary
                 mode="randomize-unlocked"
-                label="Randomize unlocked"
+                label="Shuffle"
                 icon={Shuffle}
                 shortcut="R"
                 hint="Keep locked variables and reinvent the rest."
                 onRun={go}
                 pending={pending}
               />
-              <ActionButton mode="randomize-all" label="Randomize all" icon={Dices} shortcut="⇧R" hint="A fresh concept. Locks are ignored but kept." onRun={go} pending={pending} />
               <ActionButton mode="surprise" label="Surprise me" icon={Sparkles} shortcut="S" hint="Favour rare characters, phenomena and compositions." onRun={go} pending={pending} />
-              <span className="mx-1 h-5 w-px bg-border" aria-hidden />
-              <ActionButton mode="batch" label="Five concepts" icon={LayoutGrid} hint="Five distinct concepts to choose from. Locks are respected." onRun={go} pending={pending} />
-              <ActionButton mode="similar" label="More like this" icon={Layers} hint="Same world, varied details." onRun={go} pending={pending} disabled={noBase} />
-              <ActionButton mode="new-direction" label="New direction" icon={Compass} hint="Move far from this concept on every unlocked variable." onRun={go} pending={pending} disabled={noBase} />
-            </div>
-
-            <div className="-mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[11.5px] text-text-muted">
-              <p>
-                {!aiAvailable
-                  ? "The built-in concept engine is in use. AI concepts need OPENAI_API_KEY on the server."
-                  : useAi
-                    ? `AI concepts use ${textAssist?.model}. They take a few seconds and are validated before they appear.`
-                    : "The built-in concept engine is in use. Turn on Use AI for model-written concepts."}
-              </p>
-              <p className="flex items-center gap-1.5" aria-label="Keyboard shortcuts">
-                <Kbd>R</Kbd> unlocked <Kbd className="ml-1.5">⇧R</Kbd> all <Kbd className="ml-1.5">S</Kbd> surprise
-              </p>
+              <ActionButton mode="batch" label="Five ideas" icon={LayoutGrid} hint="Five distinct concepts to choose from. Locks are respected." onRun={go} pending={pending} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" size="sm" variant="ghost" className="text-text-secondary" disabled={!!pending}>
+                    More
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onSelect={() => go("randomize-all")}>
+                    <Dices /> Start fresh <span className="ml-auto font-mono text-[11px] text-text-muted">⇧R</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={noBase} onSelect={() => go("similar")}>
+                    <Layers /> More like this
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={noBase} onSelect={() => go("new-direction")}>
+                    <Compass /> New direction
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {batch ? (
@@ -298,7 +300,7 @@ export function ExploreView() {
                       </Button>
                       <Button size="sm" onClick={() => void sendToStudio()} disabled={busy !== null}>
                         {busy === "studio" ? <Loader2 className="animate-spin" /> : null}
-                        Send to Studio <ArrowRight />
+                        Send to Create <ArrowRight />
                       </Button>
                     </div>
                   </>

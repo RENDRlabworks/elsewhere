@@ -46,7 +46,7 @@ export function StartingImageSection({ session }: { session: StudioSession }) {
 
   return (
     <section
-      className={cn("border-b border-border px-4 py-3 transition-colors", dragging && "bg-surface")}
+      className={cn("rounded-xl px-2 py-2 transition-colors", dragging && "bg-surface")}
       onDragOver={(e) => {
         if (![...e.dataTransfer.types].includes("Files")) return;
         e.preventDefault();
@@ -63,7 +63,7 @@ export function StartingImageSection({ session }: { session: StudioSession }) {
       aria-label="Starting image"
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-text-secondary">Starting image</span>
+        <span className="text-[11px] tracking-[0.08em] text-text-muted uppercase">Starting image</span>
         {starting.length ? (
           <button type="button" className="text-[11px] text-text-muted hover:text-text-secondary" onClick={() => setPickerOpen(true)}>
             Add or change
@@ -98,15 +98,13 @@ export function StartingImageSection({ session }: { session: StudioSession }) {
             {starting.length === 1 ? `${starting[0].label}. Its` : "Their"} medium, grain and light carry over. Subject and colour come from this scene.
           </p>
           {!supports && session.model ? (
-            <p className="text-[11px] text-warning/90">{session.model.label} cannot use reference images, so the look will come from the Style DNA text only.</p>
+            <p className="text-[11px] text-warning/90">{session.model.label} cannot use reference images, so the look will come from the look&apos;s written rules only.</p>
           ) : null}
         </div>
       ) : (
-        <div className={cn("rounded-md border border-dashed p-3", dragging ? "border-text-secondary" : "border-border")}>
-          <p className="text-[11.5px] leading-snug text-text-muted">
-            Work from one of your images. Its look carries over while you choose a new subject, palette and composition. You can also drop a file here.
-          </p>
-          <div className="mt-2.5 flex gap-1.5">
+        <div className={cn("rounded-xl border border-dashed p-3.5", dragging ? "border-text-secondary" : "border-border")}>
+          <p className="text-[13px] leading-snug text-text-secondary">Start from one of your images, or drop a file here.</p>
+          <div className="mt-3 flex gap-1.5">
             <Button size="xs" variant="secondary" onClick={() => setPickerOpen(true)}>
               <ImagePlus /> Choose image
             </Button>

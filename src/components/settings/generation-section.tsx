@@ -31,8 +31,8 @@ export function GenerationSection({ prefs }: { prefs: Preferences }) {
   const save = (defaults: Partial<Preferences["defaults"]>) => savePreferences({ defaults });
 
   return (
-    <SettingsSection id="generation" title="Generation defaults" description="Starting values for new scenes. Each scene can override them in the Studio.">
-      <SettingRow label="Default Style DNA" hint="Applied to new scenes. Switch the active profile any time from the command palette." htmlFor="set-style">
+    <SettingsSection id="generation" title="Generation defaults" description="Starting values for new scenes. Each scene can override them in Create.">
+      <SettingRow label="Default look" hint="Applied to new scenes. Switch the active profile any time from the command palette." htmlFor="set-style">
         <Select value={d.styleProfileId && profiles.some((p) => p.id === d.styleProfileId) ? d.styleProfileId : NONE} onValueChange={(v) => void save({ styleProfileId: v === NONE ? null : v })}>
           <SelectTrigger id="set-style" size="sm" className="w-64 text-[12.5px]">
             <SelectValue />
@@ -45,7 +45,7 @@ export function GenerationSection({ prefs }: { prefs: Preferences }) {
             ))}
             <SelectSeparator />
             <SelectItem value={NONE} className="text-[12.5px]">
-              No Style DNA
+              No look
             </SelectItem>
           </SelectContent>
         </Select>

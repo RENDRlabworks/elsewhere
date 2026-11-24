@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MotionConfig } from "motion/react";
-import { ChevronsLeft, ChevronsRight, Command as CommandIcon, LogOut, RefreshCw } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Command as CommandIcon, LogOut, RefreshCw, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/client/api";
 import { useApp } from "@/stores/app";
@@ -16,7 +16,7 @@ import { ConfirmHost } from "@/components/common/confirm";
 import { CollectionPicker } from "@/components/generation/collection-picker";
 import { StyleReferencePicker } from "@/components/generation/style-reference-picker";
 import { CommandPalette } from "./command-palette";
-import { NAV } from "./nav";
+import { isActive, PRIMARY_NAV } from "./nav";
 
 function useGlobalShortcuts() {
   const router = useRouter();
@@ -37,7 +37,7 @@ function useGlobalShortcuts() {
         return;
       }
       if (Date.now() - leader < 900) {
-        const map: Record<string, string> = { s: "/studio", e: "/explore", d: "/style-dna", c: "/collections", a: "/archive", ",": "/settings" };
+        const map: Record<string, string> = { c: "/studio", s: "/studio", l: "/archive", a: "/archive", e: "/explore", d: "/style-dna", ",": "/settings" };
         if (map[e.key]) {
           e.preventDefault();
           router.push(map[e.key]);
@@ -48,6 +48,31 @@ function useGlobalShortcuts() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [router, setCommandOpen]);
+}
+
+function NavLink({ href, label, icon: Icon, active, collapsed }: { href: string; label: string; icon: typeof Settings; active: boolean; collapsed: boolean }) {
+  const link = (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex h-9 items-center gap-3 rounded-lg text-[14px] transition-colors",
+        collapsed ? "justify-center" : "px-3",
+        active ? "bg-interactive text-foreground" : "text-text-secondary hover:bg-surface hover:text-foreground",
+      )}
+    >
+      <Icon className="size-[18px] shrink-0" strokeWidth={1.5} />
+      {!collapsed ? <span>{label}</span> : null}
+    </Link>
+  );
+  return collapsed ? (
+    <Tooltip>
+      <TooltipTrigger asChild>{link}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  ) : (
+    link
+  );
 }
 
 function Sidebar() {
@@ -66,76 +91,45 @@ function Sidebar() {
   return (
     <nav
       aria-label="Primary"
-      className={cn(
-        "flex h-full shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200",
-        collapsed ? "w-[52px]" : "w-[208px]",
-      )}
+      className={cn("flex h-full shrink-0 flex-col bg-background transition-[width] duration-200", collapsed ? "w-[60px]" : "w-[196px]")}
     >
-      <div className={cn("flex h-12 items-center", collapsed ? "justify-center" : "justify-between px-4")}>
-        {!collapsed ? (
-          <Link href="/studio" className="text-[13px] font-medium tracking-[0.18em] text-foreground uppercase">
-            Elsewhere
-          </Link>
-        ) : (
-          <Link href="/studio" aria-label="Elsewhere" className="text-[13px] font-medium text-foreground">
-            E
-          </Link>
-        )}
+      <div className={cn("flex h-14 items-center", collapsed ? "justify-center" : "px-5")}>
+        <Link href="/studio" aria-label="Elsewhere" className="text-[13px] font-medium tracking-[0.22em] text-foreground uppercase">
+          {collapsed ? "E" : "Elsewhere"}
+        </Link>
       </div>
+
+      <ul className="space-y-1 px-2.5 pt-2">
+        {PRIMARY_NAV.map((item) => (
+          <li key={item.href}>
+            <NavLink href={item.href} label={item.label} icon={item.icon} active={isActive(item, pathname)} collapsed={collapsed} />
+          </li>
+        ))}
+      </ul>
 
       <button
         type="button"
         onClick={() => setCommandOpen(true)}
         className={cn(
-          "mx-2 mb-3 flex h-7 items-center gap-2 rounded-md border border-border bg-surface text-[12px] text-text-muted transition-colors hover:text-text-secondary",
-          collapsed ? "justify-center px-0" : "px-2",
+          "mx-2.5 mt-4 flex h-9 items-center gap-3 rounded-lg text-[13px] text-text-muted transition-colors hover:bg-surface hover:text-text-secondary",
+          collapsed ? "justify-center px-0" : "px-3",
         )}
         aria-label="Open command palette"
       >
-        <CommandIcon className="size-3.5" />
+        <CommandIcon className="size-4" strokeWidth={1.5} />
         {!collapsed ? (
           <>
             <span className="flex-1 text-left">Search or jump</span>
-            <span className="font-mono text-[10.5px]">⌘K</span>
+            <span className="font-mono text-[11px]">⌘K</span>
           </>
         ) : null}
       </button>
 
-      <ul className="flex-1 space-y-0.5 px-2">
-        {NAV.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const link = (
-            <Link
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex h-8 items-center gap-2.5 rounded-md text-[13px] transition-colors",
-                collapsed ? "justify-center" : "px-2.5",
-                active ? "bg-interactive text-foreground" : "text-text-secondary hover:bg-surface hover:text-foreground",
-              )}
-            >
-              <item.icon className="size-4 shrink-0" strokeWidth={1.6} />
-              {!collapsed ? <span>{item.label}</span> : null}
-            </Link>
-          );
-          return (
-            <li key={item.href}>
-              {collapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              ) : (
-                link
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="flex-1" />
 
-      <div className={cn("space-y-2 border-t border-border p-2", collapsed && "flex flex-col items-center")}>
-        {data && !collapsed ? <ModeBadge /> : null}
-        <div className={cn("flex items-center", collapsed ? "flex-col gap-1" : "justify-between")}>
+      <div className={cn("space-y-1 px-2.5 pb-3", collapsed && "flex flex-col items-center")}>
+        <NavLink href="/settings" label="Settings" icon={Settings} active={pathname.startsWith("/settings")} collapsed={collapsed} />
+        <div className={cn("flex items-center pt-1", collapsed ? "flex-col gap-1" : "justify-between pl-1")}>
           {data?.user.mode === "supabase" ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -156,6 +150,11 @@ function Sidebar() {
               </TooltipTrigger>
               <TooltipContent side="right">Sign out {data.user.email}</TooltipContent>
             </Tooltip>
+          ) : data && !data.runtime.openaiConfigured ? (
+            <Link href="/settings#integrations" className="flex items-center gap-1.5 text-[11.5px] text-text-muted hover:text-text-secondary" title="Sketches only. Configure OpenAI for real images.">
+              <span className="size-1.5 rounded-full bg-warning" />
+              {!collapsed ? "Dev mode" : null}
+            </Link>
           ) : (
             <span />
           )}
@@ -170,23 +169,6 @@ function Sidebar() {
         </div>
       </div>
     </nav>
-  );
-}
-
-function ModeBadge() {
-  const data = useApp((s) => s.data)!;
-  const live = data.runtime.openaiConfigured;
-  return (
-    <Link href="/settings#integrations" className="block rounded-md border border-border px-2.5 py-2 hover:bg-surface">
-      <div className="flex items-center gap-1.5 text-[11.5px] text-text-secondary">
-        <span className={cn("size-1.5 rounded-full", live ? "bg-success" : "bg-warning")} />
-        {live ? "Live generation" : "Development mode"}
-      </div>
-      <div className="mt-0.5 text-[11px] text-text-muted">
-        {data.runtime.dataMode === "local" ? "Local storage" : "Supabase"}
-        {live ? "" : " · sketches only"}
-      </div>
-    </Link>
   );
 }
 
@@ -234,7 +216,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>
       <div className="flex h-full">
         {!fullscreen ? (
-          <React.Suspense fallback={<div className="h-full w-[208px] shrink-0 border-r border-border bg-background" />}>
+          <React.Suspense fallback={<div className="h-full w-[196px] shrink-0 bg-background" />}>
             <Sidebar />
           </React.Suspense>
         ) : null}

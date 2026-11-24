@@ -43,7 +43,7 @@ function ReviewCard({ review }: { review: ImageReview }) {
       </div>
       {review.driftDetected ? (
         <div className="flex gap-1.5 text-[12px] text-warning">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Possible style drift from the Style DNA.
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Possible style drift from the look.
         </div>
       ) : null}
       {review.summary ? <p className="text-[12.5px] leading-relaxed text-text-secondary">{review.summary}</p> : null}
@@ -97,7 +97,7 @@ export function ReviewPanel({ g, reviews }: { g: Generation | null; reviews: Ima
   const [summary, setSummary] = React.useState("");
   const [busy, setBusy] = React.useState<"manual" | "ai" | null>(null);
 
-  if (!g || g.status !== "completed") return <EmptyState title="Nothing to review" description="Select a completed image to assess it against its Style DNA." />;
+  if (!g || g.status !== "completed") return <EmptyState title="Nothing to review" description="Select a completed image to assess it against its look." />;
 
   const saveManual = async () => {
     setBusy("manual");
@@ -132,7 +132,7 @@ export function ReviewPanel({ g, reviews }: { g: Generation | null; reviews: Ima
     <div className="space-y-5 p-4">
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <MetaLabel>Assess against Style DNA</MetaLabel>
+          <MetaLabel>Assess against the look</MetaLabel>
           <span className="text-[11px] text-text-muted">{scored} of {REVIEW_CRITERIA_OPTIONS.length}</span>
         </div>
         <div className="space-y-2">
@@ -155,7 +155,7 @@ export function ReviewPanel({ g, reviews }: { g: Generation | null; reviews: Ima
         </Button>
         <p className="text-[11px] leading-snug text-text-muted">
           {textAssist?.available
-            ? "Compares the image with its Style DNA and references. Scores are subjective creative guidance, never automatic decisions."
+            ? "Compares the image with its look and references. Scores are subjective creative guidance, never automatic decisions."
             : "AI review needs an OpenAI key on the server."}
         </p>
       </section>

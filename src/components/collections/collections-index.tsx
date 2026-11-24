@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState, MetaLabel, PageHeader } from "@/components/common/primitives";
+import { LibraryTabs } from "@/components/common/library-tabs";
 import { NewCollectionDialog } from "./new-collection-dialog";
 import { deleteCollection, duplicateCollection } from "./actions";
 import { plural } from "./lib";
@@ -32,8 +33,9 @@ export function CollectionsIndex() {
   return (
     <div className="flex h-full flex-col">
       <PageHeader
-        title="Collections"
+        title="Library"
         description="Curated visual series. Each one is a sequence with an order, a cover and a point of view."
+        tabs={<LibraryTabs active="collections" />}
         actions={
           <Button size="sm" onClick={() => setCreating(true)}>
             <Plus /> New collection
@@ -67,7 +69,7 @@ export function CollectionsIndex() {
               icon={Layers}
               className="py-28"
               title="No collections yet"
-              description="A collection is a curated series with its own order and cover. Start one, then add images from the Studio or the Archive."
+              description="A collection is a curated series with its own order and cover. Start one, then add images from Create or the Library."
               action={
                 <Button size="sm" onClick={() => setCreating(true)}>
                   <Plus /> New collection
