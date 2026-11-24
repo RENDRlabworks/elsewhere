@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Lock, LockOpen, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,28 +13,58 @@ export function MetaLabel({ children, className }: { children: React.ReactNode; 
   return <div className={cn("label-meta", className)}>{children}</div>;
 }
 
+/**
+ * Page title, optional tabs and actions. No explainer paragraph: pages speak through
+ * their content, and help lives in empty states. `description` is accepted for
+ * screen readers only.
+ */
 export function PageHeader({
   title,
   description,
   actions,
   meta,
+  tabs,
   editorial,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   meta?: React.ReactNode;
+  tabs?: React.ReactNode;
   editorial?: boolean;
 }) {
   return (
-    <header className="flex items-end justify-between gap-6 border-b border-border px-8 pt-7 pb-5">
+    <header className="flex items-end justify-between gap-6 px-8 pt-8 pb-5">
       <div className="min-w-0">
-        {meta ? <div className="mb-2">{meta}</div> : null}
-        <h1 className={cn("truncate text-foreground", editorial ? "text-editorial text-[28px] leading-9" : "text-[17px] font-medium")}>{title}</h1>
-        {description ? <p className="mt-1 max-w-2xl text-[13px] text-text-secondary">{description}</p> : null}
+        {meta ? <div className="mb-3">{meta}</div> : null}
+        <h1 className={cn("truncate text-foreground", editorial ? "text-editorial text-[28px] leading-9" : "text-[24px] leading-8 font-medium tracking-[-0.01em]")}>{title}</h1>
+        {description ? <p className="sr-only">{description}</p> : null}
+        {tabs ? <div className="mt-4">{tabs}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </header>
+  );
+}
+
+/** Underlined text tabs that navigate between pages. */
+export function PageTabs({ items }: { items: { href: string; label: string; active: boolean; count?: number | null }[] }) {
+  return (
+    <nav className="flex gap-6" aria-label="Sections">
+      {items.map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          aria-current={t.active ? "page" : undefined}
+          className={cn(
+            "-mb-px border-b pb-2 text-[14px] transition-colors",
+            t.active ? "border-foreground text-foreground" : "border-transparent text-text-muted hover:text-text-secondary",
+          )}
+        >
+          {t.label}
+          {t.count != null ? <span className="ml-1.5 font-mono text-[11.5px] text-text-muted tabular-nums">{t.count.toLocaleString()}</span> : null}
+        </Link>
+      ))}
+    </nav>
   );
 }
 

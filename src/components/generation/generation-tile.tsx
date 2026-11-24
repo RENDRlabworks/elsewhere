@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, CircleAlert, Heart, LoaderCircle, Star, Wand2, X } from "lucide-react";
+import { Check, CircleAlert, Heart, LoaderCircle, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
 import { GenerationProgressFill, useCompletionHold } from "./progress";
@@ -44,7 +44,7 @@ export function GenerationContextMenu({
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
-        <ContextMenuItem onSelect={() => router.push(`/studio?generation=${g.id}`)}>Open in Studio</ContextMenuItem>
+        <ContextMenuItem onSelect={() => router.push(`/studio?generation=${g.id}`)}>Open in Create</ContextMenuItem>
         {g.sceneSnapshot ? (
           <ContextMenuItem onSelect={() => router.push(`/studio?restore=${g.id}`)}>Restore scene settings</ContextMenuItem>
         ) : null}
@@ -111,7 +111,7 @@ export function GenerationTile({
             else onOpen?.();
           }}
           className={cn(
-            "relative block w-full overflow-hidden rounded-md bg-surface outline-none ring-offset-2 ring-offset-background focus-visible:ring-1 focus-visible:ring-text-secondary",
+            "relative block w-full overflow-hidden rounded-lg bg-surface outline-none ring-offset-2 ring-offset-background focus-visible:ring-1 focus-visible:ring-text-secondary",
             selected && "ring-1 ring-foreground",
             g.reviewStatus === "rejected" && "opacity-45",
           )}
@@ -155,6 +155,17 @@ export function GenerationTile({
             {selected ? <Check className="size-3" /> : null}
           </button>
         ) : null}
+        {showMeta && src ? (
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 flex items-end rounded-b-lg bg-gradient-to-t from-black/80 via-black/30 to-transparent pt-10 pr-24 pb-2.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+              selectable ? "pl-9" : "pl-3",
+            )}
+          >
+            <span className="truncate text-[13px] text-white/90">{g.title}</span>
+          </span>
+        ) : null}
         {g.status === "completed" && g.assetId ? (
           <Link
             href={`/studio?recreate=${g.id}`}
@@ -166,16 +177,6 @@ export function GenerationTile({
           </Link>
         ) : null}
         </div>
-        {showMeta ? (
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="truncate text-[12px] text-text-secondary">{g.title}</div>
-            {g.rating ? (
-              <div className="flex shrink-0 items-center gap-0.5 text-[11px] text-text-muted">
-                <Star className="size-3" /> {g.rating}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </GenerationContextMenu>
   );

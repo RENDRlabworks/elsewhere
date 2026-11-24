@@ -103,14 +103,14 @@ export function StyleEditor({ id }: { id: string }) {
     if (loading || (!error && !data)) return <DetailSkeleton />;
     return (
       <div className="flex h-full flex-col">
-        <PageHeader title="Style DNA" meta={<BackLink />} />
+        <PageHeader title="Looks" meta={<BackLink />} />
         <EmptyState
           icon={SearchX}
           title={error instanceof ApiError && error.status === 404 ? "Profile not found" : "This profile could not be loaded"}
           description={error ? errorMessage(error) : undefined}
           action={
             <Button asChild size="sm" variant="secondary">
-              <Link href="/style-dna">Back to Style DNA</Link>
+              <Link href="/style-dna">Back to Looks</Link>
             </Button>
           }
           className="flex-1"
@@ -610,7 +610,7 @@ function ProfileEditor({
 function BackLink() {
   return (
     <Link href="/style-dna" className="label-meta inline-flex items-center gap-1 rounded-sm hover:text-text-secondary">
-      <ArrowLeft className="size-3" /> Style DNA
+      <ArrowLeft className="size-3" /> Looks
     </Link>
   );
 }

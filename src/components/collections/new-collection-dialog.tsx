@@ -74,7 +74,7 @@ export function NewCollectionDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[14px] font-medium">New collection</DialogTitle>
-          <DialogDescription className="text-[12.5px]">A curated series. Add images from the Studio or the Archive once it exists.</DialogDescription>
+          <DialogDescription className="text-[12.5px]">A curated series. Add images from Create or the Library once it exists.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <Field label="Name" htmlFor="nc-name">
@@ -84,7 +84,7 @@ export function NewCollectionDialog({
             <Textarea id="nc-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={2000} className="text-[13px]" />
           </Field>
           <div className="grid grid-cols-[1fr_120px] gap-3">
-            <Field label="Style DNA" htmlFor="nc-style">
+            <Field label="Look" htmlFor="nc-style">
               <Select value={profileId} onValueChange={setProfileId}>
                 <SelectTrigger id="nc-style" className="w-full text-[13px]">
                   <SelectValue />

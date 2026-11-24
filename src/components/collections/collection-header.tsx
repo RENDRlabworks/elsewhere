@@ -91,11 +91,11 @@ export function CollectionHeader({ collection: c, imageCount, itemCount }: { col
         <Dot />
         <DropdownMenu>
           <DropdownMenuTrigger className="inline-flex items-center gap-1 rounded-sm text-text-secondary outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-text-secondary">
-            {profile ? `Style DNA: ${profile.name}` : "No Style DNA"}
+            {profile ? `Look: ${profile.name}` : "No look"}
             <ChevronDown className="size-3" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-60">
-            <DropdownMenuLabel className="text-[11.5px] text-text-muted">Associated Style DNA</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11.5px] text-text-muted">Associated look</DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={c.styleProfileId ?? ""}
               onValueChange={(v) => void saveCollection(c.id, { styleProfileId: v || null })}

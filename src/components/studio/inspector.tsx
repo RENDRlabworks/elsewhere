@@ -10,17 +10,17 @@ import type { StudioSession } from "./use-studio-session";
 
 export function Inspector({ session }: { session: StudioSession }) {
   const g = session.selected;
-  const [tab, setTab] = React.useState("prompt");
+  const [tab, setTab] = React.useState("details");
   const { data: detail } = useResource<GenerationDetail>(g && g.status === "completed" ? `/api/generations/${g.id}` : null);
   return (
     <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col gap-0 bg-background">
-      <div className="flex h-11 shrink-0 items-center border-b border-border px-2">
+      <div className="flex h-12 shrink-0 items-center px-2">
         <TabsList className="h-7 bg-transparent p-0">
-          <TabsTrigger value="prompt" className="h-7 px-2.5 text-[12px]">Prompt</TabsTrigger>
-          <TabsTrigger value="details" className="h-7 px-2.5 text-[12px]">Image</TabsTrigger>
-          <TabsTrigger value="review" className="h-7 px-2.5 text-[12px]">
+          <TabsTrigger value="details" className="h-7 px-2.5 text-[12.5px]">Image</TabsTrigger>
+          <TabsTrigger value="review" className="h-7 px-2.5 text-[12.5px]">
             Review{detail?.reviews.length ? <span className="ml-1 font-mono text-[10px] text-text-muted">{detail.reviews.length}</span> : null}
           </TabsTrigger>
+          <TabsTrigger value="prompt" className="h-7 px-2.5 text-[12.5px]">Prompt sent</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent value="prompt" className="min-h-0 flex-1">

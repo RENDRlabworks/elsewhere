@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Familiar things. Impossible worlds. A personal studio for directing AI fine-art imagery.",
 };
 
-export const viewport: Viewport = { themeColor: "#09090b", colorScheme: "dark" };
+export const viewport: Viewport = { themeColor: "#060607", colorScheme: "dark" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

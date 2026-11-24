@@ -28,16 +28,15 @@ function shortcutGroups(mod: string): { title: string; items: Shortcut[] }[] {
       title: "Everywhere",
       items: [
         { keys: [[mod, "K"]], label: "Open the command palette" },
-        { keys: [["G", "S"]], label: "Go to Studio" },
-        { keys: [["G", "E"]], label: "Go to Explore" },
-        { keys: [["G", "D"]], label: "Go to Style DNA" },
-        { keys: [["G", "C"]], label: "Go to Collections" },
-        { keys: [["G", "A"]], label: "Go to Archive" },
+        { keys: [["G", "C"]], label: "Go to Create" },
+        { keys: [["G", "L"]], label: "Go to Library" },
+        { keys: [["G", "E"]], label: "Go to Ideas" },
+        { keys: [["G", "D"]], label: "Go to Looks" },
         { keys: [["G", ","]], label: "Go to Settings" },
       ],
     },
     {
-      title: "Studio",
+      title: "Create",
       items: [
         { keys: [[mod, "Enter"]], label: "Generate" },
         { keys: [["R"]], label: "Randomize scene" },
@@ -45,7 +44,7 @@ function shortcutGroups(mod: string): { title: string; items: Shortcut[] }[] {
         { keys: [["A"]], label: "Accept image" },
         { keys: [["X"]], label: "Reject image" },
         { keys: [["V"]], label: "Create a variation" },
-        { keys: [["I"]], label: "Toggle the inspector" },
+        { keys: [["I"]], label: "Show or hide details" },
         { keys: [["Shift", "F"]], label: "Toggle fullscreen" },
         { keys: [["["], ["]"]], label: "Previous or next image" },
         { keys: [["0"]], label: "Fit image to view" },
@@ -54,7 +53,7 @@ function shortcutGroups(mod: string): { title: string; items: Shortcut[] }[] {
       ],
     },
     {
-      title: "Explore",
+      title: "Ideas",
       items: [
         { keys: [["R"]], label: "Randomize unlocked variables" },
         { keys: [["Shift", "R"]], label: "Randomize everything" },
@@ -62,7 +61,7 @@ function shortcutGroups(mod: string): { title: string; items: Shortcut[] }[] {
       ],
     },
     {
-      title: "Style DNA",
+      title: "Looks",
       items: [{ keys: [[mod, "S"]], label: "Save profile changes" }],
     },
   ];
@@ -95,7 +94,7 @@ export function ShortcutsSection() {
     <SettingsSection id="shortcuts" title="Keyboard shortcuts" description="Single-key shortcuts are ignored while you type in a field.">
       <div className="grid gap-x-10 gap-y-6 py-5 md:grid-cols-2">
         {groups.map((g) => (
-          <div key={g.title} className={cn(g.title === "Studio" && "md:row-span-2")}>
+          <div key={g.title} className={cn(g.title === "Create" && "md:row-span-2")}>
             <MetaLabel className="mb-2">{g.title}</MetaLabel>
             <dl className="divide-y divide-border border-y border-border">
               {g.items.map((s) => (
@@ -156,7 +155,7 @@ export function DataSection({ payload }: { payload: SettingsPayload | undefined 
         <div>
           <div className="text-[13px] text-foreground">Export all data</div>
           <p className="mt-0.5 max-w-md text-[12px] leading-relaxed text-text-muted">
-            A JSON file with every scene, Style DNA version, generation record, collection and usage record. Image files are referenced by asset ID.
+            A JSON file with every scene, look version, generation record, collection and usage record. Image files are referenced by asset ID.
           </p>
         </div>
         <Button asChild size="sm" variant="secondary">

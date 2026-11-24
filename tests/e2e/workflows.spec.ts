@@ -11,6 +11,20 @@ async function openStudio(page: Page) {
   await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
 }
 
+/** Open a Create chip (Look, Subject, Colour, Setting, Phenomenon) if it is closed. */
+async function openChip(page: Page, name: string) {
+  const chip = page.getByRole("button", { name: new RegExp(`^${name}`) }).first();
+  if ((await chip.getAttribute("aria-expanded")) !== "true") await chip.click();
+}
+
+/** Open Fine-tune and its Scene section, where the title and description live. */
+async function openSceneFields(page: Page) {
+  const fineTune = page.getByRole("button", { name: "Fine-tune" });
+  if ((await fineTune.getAttribute("aria-expanded")) !== "true") await fineTune.click();
+  const section = page.getByRole("button", { name: "Scene", exact: true });
+  if ((await section.getAttribute("aria-expanded")) !== "true") await section.click();
+}
+
 test.describe.configure({ mode: "serial" });
 
 test("bootstraps the workspace with Style DNA presets and Volume I", async ({ page }) => {
@@ -25,11 +39,16 @@ test("bootstraps the workspace with Style DNA presets and Volume I", async ({ pa
 test("directs a scene, sees the prompt update live, and generates", async ({ page }) => {
   await openStudio(page);
   await page.getByRole("button", { name: "New scene" }).click();
+  await openSceneFields(page);
   await page.getByLabel("Title", { exact: true }).fill("The Frozen Hour");
+  await openChip(page, "Setting");
   await page.getByLabel("Environment", { exact: true }).fill("a frozen plain beneath a pale sky");
+  await openChip(page, "Phenomenon");
   await page.getByLabel("Impossible phenomenon", { exact: true }).fill("a single raindrop the size of a house, suspended above the ice");
 
-  // Live, deterministic prompt preview reflects scene direction.
+  // The prompt sent is one click away in Details, and updates live.
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  await page.getByRole("tab", { name: "Prompt sent" }).click();
   const promptPanel = page.locator("ol").filter({ hasText: "Impossible phenomenon" });
   await expect(promptPanel).toContainText("raindrop the size of a house");
   await expect(promptPanel).toContainText("No collage");
@@ -45,10 +64,11 @@ test("directs a scene, sees the prompt update live, and generates", async ({ pag
 
 test("randomizes only unlocked fields", async ({ page }) => {
   await openStudio(page);
+  await openChip(page, "Setting");
   const env = page.getByLabel("Environment", { exact: true });
   await env.fill("a locked basalt shore");
   await page.getByRole("button", { name: "Lock Environment" }).click();
-  await page.getByRole("button", { name: /Randomize unlocked/ }).click();
+  await page.getByRole("button", { name: /Surprise me \(unlocked\)/ }).click();
   await expect(page.getByText(/New direction:/)).toBeVisible();
   await expect(env).toHaveValue("a locked basalt shore");
 });
@@ -68,7 +88,7 @@ test("recreates an image's style with a new direction", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Recreate in this style" }).click();
 
   await expect(page.getByText(/is attached as the style reference/)).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Frozen Hour (new)");
+  await expect(page.getByText("The Frozen Hour (new)", { exact: true }).first()).toBeVisible();
 
   // The image now sits on the Style DNA reference board as a style reference, sharing its file.
   const { references } = await (await page.request.get("/api/references")).json();
@@ -89,6 +109,7 @@ test("works from a starting image chosen in the Studio and fills fields with ide
   await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
 
   // Ideas fill a field, respect locks, and undo restores the previous text.
+  await openChip(page, "Setting");
   const env = page.getByLabel("Environment", { exact: true });
   await env.fill("a quiet shore");
   await page.getByRole("button", { name: "New idea for Environment" }).click();
@@ -106,6 +127,7 @@ test("works from a starting image chosen in the Studio and fills fields with ide
 
 test("suggestion menus open with every option even when the field has text", async ({ page }) => {
   await openStudio(page);
+  await openChip(page, "Setting");
   const env = page.getByLabel("Environment", { exact: true });
   await env.fill("a black volcanic coastline");
   await env.locator("..").getByRole("button", { name: "Show suggestions" }).click();
@@ -126,14 +148,16 @@ test("suggestion menus open with every option even when the field has text", asy
 test("changing the subject rewrites the fields that name it", async ({ page }) => {
   await openStudio(page);
   await page.getByRole("button", { name: "New scene" }).click();
+  await openSceneFields(page);
   await page.getByLabel("Title", { exact: true }).fill("The Fox's Wish");
-  await page.getByLabel("Description", { exact: true }).first().fill("A fox beneath a dandelion clock.");
+  await page.getByLabel("Description", { exact: true }).last().fill("A fox beneath a dandelion clock.");
+  await openChip(page, "Subject");
   await page.getByLabel("Character", { exact: true }).first().click();
   await page.getByRole("option", { name: "Fox" }).click();
   await page.getByLabel("Character", { exact: true }).first().click();
   await page.getByRole("option", { name: "Horse" }).click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Horse's Wish");
-  await expect(page.getByLabel("Description", { exact: true }).first()).toHaveValue("A horse beneath a dandelion clock.");
+  await expect(page.getByLabel("Description", { exact: true }).last()).toHaveValue("A horse beneath a dandelion clock.");
   await expect(page.getByText(/Updated the title and description to match the horse/)).toBeVisible();
   await page.getByRole("button", { name: "Undo" }).first().click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Fox's Wish");
@@ -155,8 +179,8 @@ test("locked Style DNA attributes cannot be changed through the API", async ({ r
 
 test("explore generates structured concepts and sends one to the Studio", async ({ page }) => {
   await page.goto("/explore");
-  await page.getByRole("button", { name: /^Randomize all/i }).first().click();
-  await page.getByRole("button", { name: /Send to Studio/i }).first().click();
+  await page.getByRole("button", { name: /^Shuffle/i }).first().click();
+  await page.getByRole("button", { name: /Send to Create/i }).first().click();
   await expect(page).toHaveURL(/\/studio/);
   await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
 });

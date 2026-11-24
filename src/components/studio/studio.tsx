@@ -6,10 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUi } from "@/stores/ui";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
-import { ScenePanel } from "./scene-panel";
+import { DirectPanel } from "./direct-panel";
 import { useStudioSession } from "./use-studio-session";
 
-const LAYOUT_KEY = "elsewhere.studio.layout";
+const LAYOUT_KEY = "elsewhere.create.layout";
 
 function readLayout(): Layout | undefined {
   try {
@@ -22,7 +22,7 @@ function readLayout(): Layout | undefined {
 
 function ResizeHandle() {
   return (
-    <Separator className="group relative w-px bg-border outline-none data-[separator=active]:bg-text-secondary data-[separator=hover]:bg-text-muted">
+    <Separator className="group relative w-px bg-border/60 outline-none data-[separator=active]:bg-text-secondary data-[separator=hover]:bg-text-muted">
       <span className="absolute inset-y-0 -left-1.5 w-3" />
     </Separator>
   );
@@ -50,18 +50,14 @@ export function Studio() {
 
   if (session.booting) {
     return (
-      <div className="flex h-full gap-px bg-border" aria-busy="true" aria-label="Loading studio">
-        <div className="w-[320px] space-y-3 bg-background p-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-8" />
-          ))}
+      <div className="flex h-full" aria-busy="true" aria-label="Loading studio">
+        <div className="flex-1 p-12">
+          <Skeleton className="mx-auto h-full max-w-xl rounded-xl" />
         </div>
-        <div className="flex-1 bg-background p-10">
-          <Skeleton className="mx-auto h-full max-w-xl" />
-        </div>
-        <div className="w-[340px] space-y-3 bg-background p-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-10" />
+        <div className="w-[360px] space-y-2 p-4">
+          <Skeleton className="h-28 rounded-xl" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
         </div>
       </div>
@@ -79,16 +75,16 @@ export function Studio() {
       }}
       className="h-full"
     >
-      <Panel id="scene" panelRef={sceneRef} defaultSize="24" minSize={280} maxSize="40" collapsible collapsedSize={0} className="min-w-0">
-        <ScenePanel session={session} />
-      </Panel>
-      <ResizeHandle />
-      <Panel id="canvas" minSize="30" className="min-w-0">
+      <Panel id="canvas" minSize="40" className="min-w-0">
         <Canvas session={session} />
       </Panel>
       <ResizeHandle />
-      <Panel id="inspector" panelRef={inspectorRef} defaultSize="25" minSize={300} maxSize="42" collapsible collapsedSize={0} className="min-w-0">
+      <Panel id="details" panelRef={inspectorRef} defaultSize="0" minSize={300} maxSize="36" collapsible collapsedSize={0} className="min-w-0">
         <Inspector session={session} />
+      </Panel>
+      <ResizeHandle />
+      <Panel id="direct" panelRef={sceneRef} defaultSize="26" minSize={320} maxSize="38" collapsible collapsedSize={0} className="min-w-0">
+        <DirectPanel session={session} />
       </Panel>
     </Group>
   );

@@ -35,7 +35,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
           Elsewhere is running in local development mode. Everything is stored on this machine and no sign-in is required.
         </p>
         <Button asChild className="w-full">
-          <Link href="/studio">Open the Studio</Link>
+          <Link href="/studio">Start creating</Link>
         </Button>
         <p className="text-[12px] text-text-muted">Configure Supabase to enable accounts. See the README.</p>
       </div>

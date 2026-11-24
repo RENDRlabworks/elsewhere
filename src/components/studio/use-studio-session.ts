@@ -121,7 +121,7 @@ export function useStudioSession() {
   const startFromImages = React.useCallback(
     async (generationIds: string[], opts: { copyScene?: boolean } = {}) => {
       const profileId = profileForImages();
-      if (!profileId) throw new Error("Create a Style DNA first, then try again.");
+      if (!profileId) throw new Error("Make a look first, then try again.");
       const { references } = await api<{ references: { id: string }[] }>("/api/references/from-generation", {
         body: { generationIds, profileId, role: "style" },
       });
@@ -160,7 +160,7 @@ export function useStudioSession() {
   const startFromUpload = React.useCallback(
     async (file: File) => {
       const profileId = profileForImages();
-      if (!profileId) throw new Error("Create a Style DNA first, then try again.");
+      if (!profileId) throw new Error("Make a look first, then try again.");
       const form = new FormData();
       form.set("file", file);
       form.set("profileId", profileId);
@@ -168,7 +168,7 @@ export function useStudioSession() {
       const { reference } = await api<{ reference: { id: string } }>("/api/references", { method: "POST", form });
       invalidate("/api/references", `/api/styles/${profileId}`);
       useStudio.getState().update((sc) => ({ styleProfileId: profileId, referenceIds: [...new Set([...sc.referenceIds, reference.id])] }));
-      toast.success("Starting image uploaded and attached", { description: "It was added to the Style DNA's reference board too." });
+      toast.success("Starting image uploaded and attached", { description: "It was added to the look's reference board too." });
     },
     [profileForImages],
   );

@@ -56,31 +56,32 @@
 
 :root,
 .dark {
-  --background: #09090b;
-  --surface: #111113;
-  --elevated: #19191c;
-  --interactive: #222225;
-  --border: #29292e;
-  --text-muted: #74747d;
-  --text-secondary: #a1a1aa;
-  --foreground: #ededef;
+  /* A deep, quiet gallery: near-black walls, almost no lines, so dark work glows. */
+  --background: #060607;
+  --surface: #0d0d0f;
+  --elevated: #151518;
+  --interactive: #1d1d21;
+  --border: #1b1b1f;
+  --text-muted: #85858e;
+  --text-secondary: #b0b0b8;
+  --foreground: #eeeef0;
 
-  --primary: #f4f4f5;
-  --primary-foreground: #111113;
+  --primary: #f2f2f3;
+  --primary-foreground: #0d0d0f;
 
-  --card: #111113;
-  --card-foreground: #ededef;
-  --popover: #19191c;
-  --popover-foreground: #ededef;
-  --secondary: #222225;
-  --secondary-foreground: #ededef;
-  --muted: #19191c;
-  --muted-foreground: #74747d;
-  --accent: #222225;
-  --accent-foreground: #ededef;
+  --card: #0d0d0f;
+  --card-foreground: #eeeef0;
+  --popover: #151518;
+  --popover-foreground: #eeeef0;
+  --secondary: #1d1d21;
+  --secondary-foreground: #eeeef0;
+  --muted: #151518;
+  --muted-foreground: #85858e;
+  --accent: #1d1d21;
+  --accent-foreground: #eeeef0;
   --destructive: #d0675e;
-  --input: #29292e;
-  --ring: #74747d;
+  --input: #232328;
+  --ring: #85858e;
 
   --success: #7fa98a;
   --warning: #c9a15a;
@@ -111,8 +112,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 14px;
+    line-height: 1.5;
   }
   ::selection {
     background: #3a3a40;

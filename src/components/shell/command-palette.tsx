@@ -63,7 +63,7 @@ export function CommandPalette() {
       <CommandInput placeholder="Type a command or search…" value={query} onValueChange={setQuery} />
       <CommandList>
         <CommandEmpty>No matching commands.</CommandEmpty>
-        <CommandGroup heading="Studio">
+        <CommandGroup heading="Create">
           <CommandItem onSelect={() => studio("new-scene")}>
             <Plus /> New scene
           </CommandItem>
@@ -86,7 +86,7 @@ export function CommandPalette() {
         <CommandSeparator />
         <CommandGroup heading="Go to">
           {NAV.map((n) => (
-            <CommandItem key={n.href} onSelect={() => go(n.href)} value={`go ${n.label} ${n.description}`}>
+            <CommandItem key={n.label} onSelect={() => go(n.href)} value={`go ${n.label} ${n.description}`}>
               <n.icon /> {n.label}
               <CommandShortcut>{n.shortcut}</CommandShortcut>
             </CommandItem>
@@ -113,7 +113,7 @@ export function CommandPalette() {
                   setOpen(false);
                   await updatePreferences({ activeStyleProfileId: p.id });
                   runCommand("style-changed");
-                  toast.success(`Active Style DNA: ${p.name}`);
+                  toast.success(`Active look: ${p.name}`);
                 }}
               >
                 <Dna /> {p.name}
