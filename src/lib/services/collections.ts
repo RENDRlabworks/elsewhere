@@ -7,6 +7,8 @@ import { badRequest, notFound } from "@/lib/server/http";
 import type { Bucket } from "@/lib/storage";
 import { fileFromForm, saveImageAsset } from "./assets";
 import { buildSearchText, setTags } from "./tags";
+import { renderExport } from "./share";
+import { type ExportOptions, FORMATS, templateShareText } from "@/lib/share/presets";
 
 export type CollectionSummary = Collection & {
   itemCount: number;
@@ -216,23 +218,59 @@ function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "image";
 }
 
-/** Zip the original files for a set of images. */
-export async function zipGenerations(ctx: ServerContext, generations: Generation[]) {
+/**
+ * Zip a set of images in order. Without export options the original files go in
+ * untouched; with them, each image is cropped, resized and encoded the same way
+ * as the Share sheet. Captions and alt text travel with the files.
+ */
+export async function zipGenerations(ctx: ServerContext, generations: Generation[], opts?: ExportOptions | null) {
   const files: Record<string, Uint8Array> = {};
+  const entries: { file: string; g: Generation; caption: string; altText: string }[] = [];
   let i = 0;
   for (const g of generations) {
     if (!g.assetId) continue;
-    const asset = await ctx.db.table("assets").get(g.assetId);
-    if (!asset) continue;
-    const data = await ctx.storage.get(asset.bucket as Bucket, asset.path);
-    if (!data) continue;
+    let bytes: Uint8Array | null = null;
+    let ext = "";
+    if (opts) {
+      const { focusX: _x, focusY: _y, ...rest } = opts;
+      void _x; void _y;
+      const out = await renderExport(ctx, g, rest).catch(() => null);
+      if (!out) continue;
+      bytes = new Uint8Array(out.buffer);
+      ext = FORMATS.find((f) => f.key === opts.format)!.ext;
+    } else {
+      const asset = await ctx.db.table("assets").get(g.assetId);
+      if (!asset) continue;
+      const data = await ctx.storage.get(asset.bucket as Bucket, asset.path);
+      if (!data) continue;
+      bytes = new Uint8Array(data);
+      ext = asset.path.split(".").pop() ?? "bin";
+    }
     i++;
-    const ext = asset.path.split(".").pop();
-    files[`${String(i).padStart(2, "0")}-${slug(g.title)}.${ext}`] = new Uint8Array(data);
+    const file = `${String(i).padStart(2, "0")}-${slug(g.title)}.${ext}`;
+    files[file] = bytes;
+    const text = g.shareText ?? templateShareText(g);
+    entries.push({ file, g, caption: text.caption, altText: text.altText });
   }
+  files["captions.txt"] = new TextEncoder().encode(
+    entries.map((e) => `${e.file}\n\nCaption:\n${e.caption}\n\nAlt text:\n${e.altText}`).join("\n\n----\n\n") + "\n",
+  );
   files["manifest.json"] = new TextEncoder().encode(
     JSON.stringify(
-      generations.map((g) => ({ id: g.id, title: g.title, prompt: g.prompt, model: g.model, provider: g.provider, createdAt: g.createdAt })),
+      {
+        export: opts ? { crop: opts.crop, size: opts.size, format: opts.format } : "originals",
+        images: entries.map(({ file, g, caption, altText }) => ({
+          file,
+          id: g.id,
+          title: g.title,
+          caption,
+          altText,
+          prompt: g.prompt,
+          model: g.model,
+          provider: g.provider,
+          createdAt: g.createdAt,
+        })),
+      },
       null,
       2,
     ),

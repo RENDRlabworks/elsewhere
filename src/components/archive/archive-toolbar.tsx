@@ -250,10 +250,14 @@ export function SearchField({
   value,
   onChange,
   inputRef,
+  placeholder = "Search titles, prompts, places",
+  label = "Search the Library",
 }: {
   value: string;
   onChange: (v: string) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  placeholder?: string;
+  label?: string;
 }) {
   return (
     <div className="relative w-72">
@@ -269,8 +273,8 @@ export function SearchField({
             else e.currentTarget.blur();
           }
         }}
-        placeholder="Search titles, prompts, places"
-        aria-label="Search the archive"
+        placeholder={placeholder}
+        aria-label={label}
         className="h-8 pr-8 pl-8 text-[12.5px] [&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (

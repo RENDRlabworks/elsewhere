@@ -3,13 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { ChevronLeft, ChevronRight, Download, Palette, PenLine, Star, Wand2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Palette, Share, PenLine, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/common/primitives";
-import { downloadGeneration, useStyleReferencePicker } from "@/components/generation/actions";
+import { useStyleReferencePicker } from "@/components/generation/actions";
+import { shareImage } from "@/components/share/store";
 
 /** A quiet full-screen viewer with prev/next. Escape closes, arrows navigate. */
 export function Lightbox({
@@ -102,7 +103,7 @@ export function Lightbox({
                     </>
                   ) : null}
                   {g.assetId ? (
-                    <IconButton icon={Download} label="Download original" onClick={() => downloadGeneration(g)} className="text-white/70 hover:bg-white/10 hover:text-white" />
+                    <IconButton icon={Share} label="Share or export" onClick={() => shareImage(g)} className="text-white/70 hover:bg-white/10 hover:text-white" />
                   ) : null}
                   <IconButton icon={X} label="Close" shortcut="Esc" onClick={onClose} className="text-white/70 hover:bg-white/10 hover:text-white" />
                 </div>

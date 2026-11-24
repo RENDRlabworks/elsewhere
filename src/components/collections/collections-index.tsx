@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Copy, ExternalLink, Layers, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Copy, ExternalLink, Layers, MoreHorizontal, Plus, SearchX, Trash2 } from "lucide-react";
 import type { CollectionSummary } from "@/lib/services/collections";
 import { assetSrc } from "@/lib/client/api";
 import { useResource } from "@/lib/client/resource";
@@ -22,24 +22,40 @@ import { EmptyState, MetaLabel, PageHeader } from "@/components/common/primitive
 import { LibraryTabs } from "@/components/common/library-tabs";
 import { NewCollectionDialog } from "./new-collection-dialog";
 import { deleteCollection, duplicateCollection } from "./actions";
-import { plural } from "./lib";
+import { matchesCollection, plural } from "./lib";
+import { SearchField } from "@/components/archive/archive-toolbar";
 
 export function CollectionsIndex() {
   const router = useRouter();
   const { data, error, loading, reload } = useResource<{ collections: CollectionSummary[] }>("/api/collections");
   const [creating, setCreating] = React.useState(false);
-  const collections = data?.collections ?? [];
+  const params = useSearchParams();
+  const [search, setSearch] = React.useState(params.get("q") ?? "");
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const all = data?.collections ?? [];
+  const collections = all.filter((c) => matchesCollection(c, search));
+
+  const onSearch = (v: string) => {
+    setSearch(v);
+    const url = new URL(window.location.href);
+    if (v.trim()) url.searchParams.set("q", v);
+    else url.searchParams.delete("q");
+    window.history.replaceState(null, "", url);
+  };
 
   return (
     <div className="flex h-full flex-col">
       <PageHeader
         title="Library"
         description="Curated visual series. Each one is a sequence with an order, a cover and a point of view."
-        tabs={<LibraryTabs active="collections" />}
+        tabs={<LibraryTabs active="collections" q={search} collectionCount={data ? all.length : null} />}
         actions={
-          <Button size="sm" onClick={() => setCreating(true)}>
-            <Plus /> New collection
-          </Button>
+          <>
+            <SearchField value={search} onChange={onSearch} inputRef={searchRef} placeholder="Search collections" label="Search collections" />
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus /> New collection
+            </Button>
+          </>
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -62,6 +78,23 @@ export function CollectionsIndex() {
                 <Button variant="secondary" size="sm" onClick={() => void reload()}>
                   Try again
                 </Button>
+              }
+            />
+          ) : all.length > 0 && collections.length === 0 ? (
+            <EmptyState
+              icon={SearchX}
+              className="py-28"
+              title="No collections match"
+              description={`Nothing named or tagged "${search.trim()}". Images can still match it.`}
+              action={
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => onSearch("")}>
+                    Clear search
+                  </Button>
+                  <Button size="sm" variant="secondary" asChild>
+                    <Link href={`/archive?q=${encodeURIComponent(search.trim())}`}>Search images</Link>
+                  </Button>
+                </div>
               }
             />
           ) : collections.length === 0 ? (

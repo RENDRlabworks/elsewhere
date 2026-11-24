@@ -1,4 +1,4 @@
-import { Archive, Compass, Dna, LayoutGrid, Settings, Sparkles, SquarePen, type LucideIcon } from "lucide-react";
+import { Archive, Compass, Dna, LayoutGrid, ListChecks, Settings, Sparkles, SquarePen, type LucideIcon } from "lucide-react";
 
 export type Destination = { href: string; label: string; icon: LucideIcon; shortcut: string; description: string; match?: string[] };
 
@@ -15,6 +15,7 @@ export const NAV: Destination[] = [
   { href: "/explore", label: "Ideas", icon: Compass, shortcut: "G E", description: "Shuffle scene concepts without generating" },
   { href: "/style-dna", label: "Looks", icon: Dna, shortcut: "G D", description: "The looks you generate in" },
   { href: "/archive", label: "All images", icon: Archive, shortcut: "G A", description: "Search your full history" },
+  { href: "/archive/review", label: "Review new images", icon: ListChecks, shortcut: "", description: "Keep or reject unreviewed images one at a time" },
   { href: "/settings", label: "Settings", icon: Settings, shortcut: "G ,", description: "Preferences, limits and integrations" },
   { href: "/studio", label: "Studio", icon: SquarePen, shortcut: "G S", description: "The Create workspace" },
 ];

@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ConfirmHost } from "@/components/common/confirm";
 import { CollectionPicker } from "@/components/generation/collection-picker";
 import { StyleReferencePicker } from "@/components/generation/style-reference-picker";
+import { ShareSheet } from "@/components/share/share-sheet";
 import { CommandPalette } from "./command-palette";
 import { isActive, PRIMARY_NAV } from "./nav";
 
@@ -227,6 +228,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <CommandPalette />
       <CollectionPicker />
       <StyleReferencePicker />
+      <ShareSheet />
       <ConfirmHost />
     </MotionConfig>
   );
