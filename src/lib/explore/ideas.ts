@@ -1,18 +1,17 @@
 import type { Character, SceneContent } from "@/lib/domain/schemas";
-import { ATMOSPHERES, EMOTIONAL_TONES, IDEA_FIELDS, MATERIALS, NATURAL_ELEMENTS, type CharacterKind, type IdeaField } from "@/lib/domain/vocab";
+import { IDEA_FIELDS, type CharacterKind, type IdeaField } from "@/lib/domain/vocab";
 import { loglineFor } from "./engine";
+import { ACTIONS, actionGroup, PHENOMENA, TITLE_ADJECTIVES, TITLE_NOUNS } from "./library";
 import {
-  ACTIONS,
-  actionGroup,
-  ATMOSPHERE_OPTIONS,
-  ENVIRONMENTS,
-  LIGHTING,
-  OBJECTS,
-  PHENOMENA,
-  TITLE_ADJECTIVES,
-  TITLE_NOUNS,
-  TONES,
-} from "./library";
+  ATMOSPHERE_SUGGESTIONS,
+  characterSuggestions,
+  EMOTIONAL_TONE_SUGGESTIONS,
+  ENVIRONMENT_SUGGESTIONS,
+  flatten,
+  LIGHTING_SUGGESTIONS,
+  MATERIAL_SUGGESTIONS,
+  NATURAL_ELEMENT_SUGGESTIONS,
+} from "./suggestions";
 
 /**
  * Per-field ideas for the Studio's free-text fields. The built-in pools work
@@ -56,56 +55,6 @@ const FREE_DIRECTIONS = [
   "The scale should only become clear on a second look.",
 ];
 
-const SUBJECT_LABELS: Record<ReturnType<typeof actionGroup>, string[]> = {
-  human: [
-    "a figure in a long grey coat",
-    "a child in a yellow raincoat",
-    "an old woman with a walking stick",
-    "a lone traveller with a small pack",
-    "a figure carrying a lantern",
-    "a person in a pale linen shirt",
-    "a figure wrapped in a heavy blanket",
-  ],
-  quadruped: ["a red fox", "a white hare", "a lone stag", "a pale horse", "a grey wolf", "a black cat"],
-  flyer: ["a white heron", "a single crow", "a small owl", "a flock of starlings", "a barn swallow"],
-  swimmer: ["a humpback whale", "a pale whale", "a slow manta ray"],
-  small: ["a single moth", "a blue butterfly", "a firefly", "a dragonfly"],
-  object: OBJECTS,
-  none: [],
-};
-
-const POSES = [
-  "standing upright, arms at their sides",
-  "head tilted slightly upward",
-  "one hand raised to shade their eyes",
-  "seated, back straight",
-  "turned three-quarters away from the viewer",
-  "leaning slightly forward",
-  "kneeling on one knee",
-  "arms wrapped around themselves",
-];
-
-const CLOTHING = [
-  "a long grey wool coat",
-  "a yellow raincoat",
-  "a pale linen dress",
-  "a dark hooded cloak",
-  "a heavy knitted jumper",
-  "a faded red scarf",
-  "simple dark clothes",
-  "a white shirt and dark trousers",
-];
-
-const OBJECT_FINISHES = [
-  "weathered painted wood",
-  "tarnished brass",
-  "chipped white enamel",
-  "faded red paint",
-  "salt-bleached timber",
-  "rusted iron",
-  "worn leather",
-];
-
 const HUMAN_LIKE: CharacterKind[] = ["adult", "child", "elderly", "traveler", "astronaut", "hiker", "silhouette"];
 
 function shuffle<T>(items: readonly T[], rand: () => number): T[] {
@@ -133,7 +82,7 @@ function pool(field: IdeaField, scene: SceneContent, character: Character, rand:
     case "title":
       return combos(rand, TITLE_ADJECTIVES, TITLE_NOUNS, (a, n) => `The ${a} ${n}`, 12);
     case "description": {
-      const env = shuffle(scene.environment ? [scene.environment] : ENVIRONMENTS, rand);
+      const env = shuffle(scene.environment ? [scene.environment] : flatten(ENVIRONMENT_SUGGESTIONS), rand);
       const phen = shuffle(scene.phenomenon ? [scene.phenomenon] : PHENOMENA.map((p) => p.text), rand);
       const actions = shuffle(character.action ? [character.action] : ACTIONS[group], rand);
       return Array.from({ length: 6 }, (_, i) =>
@@ -149,27 +98,28 @@ function pool(field: IdeaField, scene: SceneContent, character: Character, rand:
     case "freeDirection":
       return FREE_DIRECTIONS;
     case "subjectLabel":
-      return SUBJECT_LABELS[group];
     case "action":
-      return ACTIONS[group];
     case "pose":
-      return HUMAN_LIKE.includes(character.kind) ? POSES : [];
     case "clothing":
-      return character.kind === "object" ? OBJECT_FINISHES : HUMAN_LIKE.includes(character.kind) ? CLOTHING : [];
+      return flatten(characterSuggestions(field, character.kind));
     case "environment":
-      return ENVIRONMENTS;
+      return flatten(ENVIRONMENT_SUGGESTIONS);
     case "phenomenon":
       return PHENOMENA.map((p) => p.text);
     case "naturalElement":
-      return [...NATURAL_ELEMENTS];
-    case "materials":
-      return combos(rand, MATERIALS, MATERIALS, (a, b) => `${a}, ${b}`, 12);
+      return flatten(NATURAL_ELEMENT_SUGGESTIONS);
+    case "materials": {
+      const all = flatten(MATERIAL_SUGGESTIONS);
+      return combos(rand, all, all, (a, b) => `${a}, ${b}`, 16);
+    }
     case "lighting":
-      return LIGHTING;
+      return flatten(LIGHTING_SUGGESTIONS);
     case "atmosphere":
-      return [...new Set([...ATMOSPHERES, ...ATMOSPHERE_OPTIONS])];
-    case "emotionalTone":
-      return [...EMOTIONAL_TONES, ...combos(rand, [...EMOTIONAL_TONES, ...TONES], TONES, (a, b) => `${a} and ${b}`, 6)];
+      return flatten(ATMOSPHERE_SUGGESTIONS);
+    case "emotionalTone": {
+      const all = flatten(EMOTIONAL_TONE_SUGGESTIONS);
+      return [...all, ...combos(rand, all, all, (a, b) => `${a} and ${b}`, 10)];
+    }
   }
 }
 

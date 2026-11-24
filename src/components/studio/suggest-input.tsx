@@ -5,6 +5,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import type { SuggestionGroup } from "@/lib/explore/suggestions";
 
 /**
  * A text input with a suggestion menu. Unlike a native datalist, the menu always
@@ -23,7 +24,7 @@ export function SuggestInput({
   id: string;
   value: string;
   onChange: (v: string) => void;
-  suggestions: readonly string[];
+  suggestions: readonly string[] | readonly SuggestionGroup[];
   placeholder?: string;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -36,10 +37,18 @@ export function SuggestInput({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listId = `${id}-suggestions`;
 
-  const items = React.useMemo(() => {
+  // Groups are filtered individually; keyboard navigation runs over the flat list.
+  const groups = React.useMemo(() => {
+    const all: SuggestionGroup[] =
+      typeof suggestions[0] === "string" ? [{ label: "", items: suggestions as readonly string[] }] : (suggestions as readonly SuggestionGroup[]).slice();
     const q = filter?.trim().toLowerCase();
-    return q ? suggestions.filter((s) => s.toLowerCase().includes(q) && s.toLowerCase() !== q) : [...suggestions];
+    if (!q) return all;
+    return all
+      .map((g) => ({ label: g.label, items: g.items.filter((s) => s.toLowerCase().includes(q) && s.toLowerCase() !== q) }))
+      .filter((g) => g.items.length);
   }, [filter, suggestions]);
+  const items = React.useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  const starts = React.useMemo(() => groups.map((_, gi) => groups.slice(0, gi).reduce((n, g) => n + g.items.length, 0)), [groups]);
 
   const visible = open && items.length > 0;
 
@@ -134,30 +143,38 @@ export function SuggestInput({
           onInteractOutside={(e) => {
             if (wrapRef.current?.contains(e.target as Node)) e.preventDefault();
           }}
-          className="z-50 max-h-64 w-(--radix-popover-trigger-width) min-w-56 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+          className="z-50 max-h-80 w-(--radix-popover-trigger-width) min-w-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
         >
           <div id={listId} role="listbox" aria-label="Suggestions">
-            {items.map((s, i) => {
-              const current = s.toLowerCase() === value.trim().toLowerCase();
-              return (
-                <div
-                  key={s}
-                  id={`${listId}-${i}`}
-                  role="option"
-                  aria-selected={i === active}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => choose(s)}
-                  onMouseEnter={() => setActive(i)}
-                  className={cn(
-                    "flex cursor-default items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-[12.5px] text-text-secondary",
-                    i === active && "bg-interactive text-foreground",
-                  )}
-                >
-                  <span>{s}</span>
-                  {current ? <Check className="size-3 shrink-0 text-text-muted" /> : null}
+            {groups.map((g, gi) => (
+                <div key={g.label || "all"} role={g.label ? "group" : undefined} aria-label={g.label || undefined}>
+                  {g.label ? (
+                    <div className="sticky top-0 z-10 bg-popover px-2 pt-2 pb-1 text-[10.5px] font-medium tracking-wide text-text-muted uppercase">{g.label}</div>
+                  ) : null}
+                  {g.items.map((s, ii) => {
+                    const index = starts[gi] + ii;
+                    const current = s.toLowerCase() === value.trim().toLowerCase();
+                    return (
+                      <div
+                        key={s}
+                        id={`${listId}-${index}`}
+                        role="option"
+                        aria-selected={index === active}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => choose(s)}
+                        onMouseEnter={() => setActive(index)}
+                        className={cn(
+                          "flex cursor-default items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-[12.5px] text-text-secondary",
+                          index === active && "bg-interactive text-foreground",
+                        )}
+                      >
+                        <span>{s}</span>
+                        {current ? <Check className="size-3 shrink-0 text-text-muted" /> : null}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+            ))}
           </div>
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>

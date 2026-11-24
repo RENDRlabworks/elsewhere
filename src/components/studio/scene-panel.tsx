@@ -5,22 +5,26 @@ import Link from "next/link";
 import { Dices, Lock, Plus, Redo2, Undo2, X } from "lucide-react";
 import { characterSchema, type Character, type SceneContent, type SceneField } from "@/lib/domain/schemas";
 import {
-  ATMOSPHERES,
   CAMERA_ANGLE_OPTIONS,
   CHARACTER_OPTIONS,
   COMPOSITION_PRESET_OPTIONS,
   DIRECTION_OPTIONS,
-  EMOTIONAL_TONES,
   HUMAN_KINDS,
-  MATERIALS,
   MOVEMENT_OPTIONS,
-  NATURAL_ELEMENTS,
   REFERENCE_ROLE_OPTIONS,
   RELATIONSHIP_OPTIONS,
   TIME_OPTIONS,
   type CompositionPreset,
 } from "@/lib/domain/vocab";
-import { ENVIRONMENTS, LIGHTING } from "@/lib/explore/library";
+import {
+  ATMOSPHERE_SUGGESTIONS,
+  characterSuggestions,
+  EMOTIONAL_TONE_SUGGESTIONS,
+  ENVIRONMENT_SUGGESTIONS,
+  LIGHTING_SUGGESTIONS,
+  MATERIAL_SUGGESTIONS,
+  NATURAL_ELEMENT_SUGGESTIONS,
+} from "@/lib/explore/suggestions";
 import {
   cameraDistanceLanguage,
   depthLanguage,
@@ -85,6 +89,7 @@ function CharacterEditor({
           value={value.label}
           onChange={(label) => set({ label })}
           placeholder={value.kind === "object" ? "a red umbrella" : "optional"}
+          suggestions={characterSuggestions("subjectLabel", value.kind)}
           onFocus={() => {
             labelAtFocus.current = useStudio.getState().scene[slot];
           }}
@@ -102,9 +107,10 @@ function CharacterEditor({
         value={value.action}
         onChange={(action) => set({ action })}
         placeholder="pausing mid-step, looking up"
+        suggestions={characterSuggestions("action", value.kind)}
         trailing={<IdeaButton field="action" slot={slot} label="Action" />}
       />
-      {!compact ? <TextField label="Pose" value={value.pose} onChange={(pose) => set({ pose })} placeholder="optional" trailing={<IdeaButton field="pose" slot={slot} label="Pose" />} /> : null}
+      {!compact ? <TextField label="Pose" value={value.pose} onChange={(pose) => set({ pose })} placeholder="optional" suggestions={characterSuggestions("pose", value.kind)} trailing={<IdeaButton field="pose" slot={slot} label="Pose" />} /> : null}
       <div className="grid grid-cols-2 gap-2">
         <SelectField label="Direction" value={value.direction} options={DIRECTION_OPTIONS} onChange={(direction) => set({ direction })} />
         <SelectField label="Movement" value={value.movement} options={MOVEMENT_OPTIONS} onChange={(movement) => set({ movement })} />
@@ -135,6 +141,7 @@ function CharacterEditor({
           value={value.clothing}
           onChange={(clothing) => set({ clothing })}
           placeholder={value.kind === "object" ? "weathered painted wood" : "a long grey wool coat"}
+          suggestions={characterSuggestions("clothing", value.kind)}
           trailing={<IdeaButton field="clothing" slot={slot} label={value.kind === "object" ? "Material and finish" : "Clothing"} />}
         />
       ) : null}
@@ -271,7 +278,7 @@ function WorldSection() {
   const { scene, update, lock } = useField();
   return (
     <PanelSection id="world" title="World">
-      <TextField label="Environment" value={scene.environment} onChange={(environment) => update({ environment })} suggestions={ENVIRONMENTS} placeholder="an ancient pine forest at the edge of a cliff" {...lock("environment")} trailing={<IdeaButton field="environment" label="Environment" />} />
+      <TextField label="Environment" value={scene.environment} onChange={(environment) => update({ environment })} suggestions={ENVIRONMENT_SUGGESTIONS} placeholder="an ancient pine forest at the edge of a cliff" {...lock("environment")} trailing={<IdeaButton field="environment" label="Environment" />} />
       <TextField
         label="Impossible phenomenon"
         value={scene.phenomenon}
@@ -283,13 +290,13 @@ function WorldSection() {
         trailing={<IdeaButton field="phenomenon" label="Impossible phenomenon" />}
       />
       <div className="grid grid-cols-2 gap-2">
-        <TextField label="Natural element" value={scene.naturalElement} onChange={(naturalElement) => update({ naturalElement })} suggestions={NATURAL_ELEMENTS} {...lock("naturalElement")} trailing={<IdeaButton field="naturalElement" label="Natural element" />} />
+        <TextField label="Natural element" value={scene.naturalElement} onChange={(naturalElement) => update({ naturalElement })} suggestions={NATURAL_ELEMENT_SUGGESTIONS} {...lock("naturalElement")} trailing={<IdeaButton field="naturalElement" label="Natural element" />} />
         <SelectField label="Time of day" value={scene.timeOfDay} options={TIME_OPTIONS} onChange={(timeOfDay) => update({ timeOfDay })} {...lock("timeOfDay")} />
       </div>
-      <TextField label="Materials" value={scene.materials} onChange={(materials) => update({ materials })} suggestions={MATERIALS} placeholder="wet basalt, velvet moss" {...lock("materials")} trailing={<IdeaButton field="materials" label="Materials" />} />
-      <TextField label="Lighting" value={scene.lighting} onChange={(lighting) => update({ lighting })} suggestions={LIGHTING} placeholder="soft moonlight from behind the subject" {...lock("lighting")} trailing={<IdeaButton field="lighting" label="Lighting" />} />
-      <TextField label="Atmosphere" value={scene.atmosphere} onChange={(atmosphere) => update({ atmosphere })} suggestions={ATMOSPHERES} {...lock("atmosphere")} trailing={<IdeaButton field="atmosphere" label="Atmosphere" />} />
-      <TextField label="Emotional tone" value={scene.emotionalTone} onChange={(emotionalTone) => update({ emotionalTone })} suggestions={EMOTIONAL_TONES} {...lock("emotionalTone")} trailing={<IdeaButton field="emotionalTone" label="Emotional tone" />} />
+      <TextField label="Materials" value={scene.materials} onChange={(materials) => update({ materials })} suggestions={MATERIAL_SUGGESTIONS} placeholder="wet basalt, velvet moss" {...lock("materials")} trailing={<IdeaButton field="materials" label="Materials" />} />
+      <TextField label="Lighting" value={scene.lighting} onChange={(lighting) => update({ lighting })} suggestions={LIGHTING_SUGGESTIONS} placeholder="soft moonlight from behind the subject" {...lock("lighting")} trailing={<IdeaButton field="lighting" label="Lighting" />} />
+      <TextField label="Atmosphere" value={scene.atmosphere} onChange={(atmosphere) => update({ atmosphere })} suggestions={ATMOSPHERE_SUGGESTIONS} {...lock("atmosphere")} trailing={<IdeaButton field="atmosphere" label="Atmosphere" />} />
+      <TextField label="Emotional tone" value={scene.emotionalTone} onChange={(emotionalTone) => update({ emotionalTone })} suggestions={EMOTIONAL_TONE_SUGGESTIONS} {...lock("emotionalTone")} trailing={<IdeaButton field="emotionalTone" label="Emotional tone" />} />
     </PanelSection>
   );
 }

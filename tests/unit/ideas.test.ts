@@ -49,3 +49,33 @@ describe("field ideas", () => {
     for (const field of IDEA_FIELDS) for (const idea of localIdeas(field, scene({ subject: { kind: "adult" } }), { count: 50 })) expect(idea).not.toContain("\u2014");
   });
 });
+
+describe("dropdown suggestions", () => {
+  it("offers large, grouped, duplicate-free lists without em dashes", async () => {
+    const S = await import("@/lib/explore/suggestions");
+    const lists = {
+      environment: S.ENVIRONMENT_SUGGESTIONS,
+      naturalElement: S.NATURAL_ELEMENT_SUGGESTIONS,
+      materials: S.MATERIAL_SUGGESTIONS,
+      lighting: S.LIGHTING_SUGGESTIONS,
+      atmosphere: S.ATMOSPHERE_SUGGESTIONS,
+      emotionalTone: S.EMOTIONAL_TONE_SUGGESTIONS,
+    };
+    for (const [name, groups] of Object.entries(lists)) {
+      const all = S.flatten(groups);
+      expect(all.length, name).toBeGreaterThanOrEqual(50);
+      expect(groups.length, name).toBeGreaterThanOrEqual(4);
+      expect(new Set(all.map((s) => s.toLowerCase())).size, name).toBe(all.length);
+      expect(all.some((s) => s.includes("—")), name).toBe(false);
+    }
+  });
+
+  it("fits character suggestions to the kind of subject", async () => {
+    const { characterSuggestions, flatten } = await import("@/lib/explore/suggestions");
+    expect(flatten(characterSuggestions("action", "horse")).length).toBeGreaterThan(10);
+    expect(characterSuggestions("pose", "horse")).toEqual([]);
+    expect(characterSuggestions("clothing", "whale")).toEqual([]);
+    expect(flatten(characterSuggestions("clothing", "object"))).toContain("tarnished brass");
+    expect(flatten(characterSuggestions("subjectLabel", "bird"))).toContain("a white heron");
+  });
+});

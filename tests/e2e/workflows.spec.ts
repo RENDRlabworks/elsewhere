@@ -110,7 +110,8 @@ test("suggestion menus open with every option even when the field has text", asy
   await env.fill("a black volcanic coastline");
   await env.locator("..").getByRole("button", { name: "Show suggestions" }).click();
   const list = page.getByRole("listbox", { name: "Suggestions" });
-  await expect(list.getByRole("option")).toHaveCount(20);
+  await expect(list.getByRole("option")).toHaveCount(90);
+  await expect(list.getByRole("group", { name: "Ice and snow" })).toBeVisible();
   await list.getByRole("option", { name: "a vast salt flat stretching to an invisible horizon" }).click();
   await expect(env).toHaveValue("a vast salt flat stretching to an invisible horizon");
   await expect(list).toBeHidden();

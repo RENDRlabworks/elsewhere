@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import type { Option } from "@/lib/domain/vocab";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/common/primitives";
+import type { SuggestionGroup } from "@/lib/explore/suggestions";
 import { SuggestInput } from "./suggest-input";
 
 /** Collapsible panel section with remembered open state. */
@@ -84,7 +85,7 @@ export function TextField({
   placeholder?: string;
   multiline?: boolean;
   rows?: number;
-  suggestions?: readonly string[];
+  suggestions?: readonly string[] | readonly SuggestionGroup[];
   locked?: boolean;
   onToggleLock?: () => void;
   hint?: React.ReactNode;
@@ -108,7 +109,7 @@ export function TextField({
           className={cn("min-h-0 resize-none text-[12.5px] leading-relaxed", mono && "font-mono text-[12px]")}
           style={{ fieldSizing: "content" } as React.CSSProperties}
         />
-      ) : suggestions ? (
+      ) : suggestions?.length ? (
         <SuggestInput id={id} value={value} onChange={onChange} suggestions={suggestions} placeholder={placeholder} onFocus={onFocus} onBlur={onBlur} />
       ) : (
         <Input id={id} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} className="h-8 text-[12.5px]" />
