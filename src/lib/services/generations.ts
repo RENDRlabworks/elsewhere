@@ -500,7 +500,13 @@ export async function processJob(ctx: ServerContext, jobId: string, plan: Genera
     await gens
       .updateWhere({ jobId, status: { in: [...ACTIVE] } }, { status: cancelled ? "cancelled" : "failed", errorMessage: message })
       .catch(() => {});
-    if (!cancelled) console.error(`[elsewhere] job ${jobId} failed: ${message}`);
+    if (!cancelled) {
+      const detail =
+        err instanceof ProviderError
+          ? [err.status && `status ${err.status}`, err.code && `code ${err.code}`, err.requestId && `request ${err.requestId}`].filter(Boolean).join(", ")
+          : "";
+      console.error(`[elsewhere] job ${jobId} failed${detail ? ` (${detail})` : ""}: ${message}`);
+    }
   } finally {
     aborts.delete(jobId);
   }

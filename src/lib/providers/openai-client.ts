@@ -17,18 +17,64 @@ export function getOpenAI(): OpenAI {
   return client;
 }
 
-export function describeOpenAIError(err: unknown): { message: string; retryable: boolean; status?: number } {
+export type OpenAIErrorInfo = {
+  message: string;
+  retryable: boolean;
+  status?: number;
+  /** OpenAI's machine-readable error code, e.g. "insufficient_quota". */
+  code?: string;
+  /** OpenAI request ID, useful when contacting OpenAI support. Not secret. */
+  requestId?: string;
+};
+
+const BILLING_CODES = new Set(["insufficient_quota", "billing_hard_limit_reached", "billing_not_active"]);
+
+/** Translate an OpenAI error into a specific, actionable message without leaking secrets. */
+export function describeOpenAIError(err: unknown): OpenAIErrorInfo {
   if (err instanceof OpenAI.APIError) {
     const status = err.status;
-    const retryable = status === 429 || (status != null && status >= 500);
-    let message = err.message;
-    if (status === 401) message = "The OpenAI API key was rejected. Check OPENAI_API_KEY.";
-    else if (status === 429) message = "OpenAI rate limit or quota reached. Wait a moment, or check your billing limits.";
-    else if (status === 400 && /safety|moderation|content_policy/i.test(err.message))
-      message = "The request was declined by the provider's safety system. Adjust the scene and try again.";
-    else if (status === 404) message = "The selected model is not available to this API key.";
-    return { message, retryable, status };
+    const code = err.code ?? (typeof err.type === "string" ? err.type : undefined) ?? undefined;
+    const requestId = err.requestID ?? undefined;
+    const raw = err.message ?? "";
+    const base = { status, code, requestId };
+
+    if (status === 401 || code === "invalid_api_key") {
+      return { ...base, retryable: false, message: "The OpenAI API key was rejected. Check OPENAI_API_KEY in your deployment settings." };
+    }
+    if (code && BILLING_CODES.has(code)) {
+      return {
+        ...base,
+        retryable: false,
+        message: "Your OpenAI account is out of credit or has reached its billing limit. Add credit at platform.openai.com under Settings, Billing, then try again.",
+      };
+    }
+    if (status === 429) {
+      return { ...base, retryable: true, message: "OpenAI is rate limiting this account. Wait a minute and try again." };
+    }
+    if (status === 403) {
+      return {
+        ...base,
+        retryable: false,
+        message: /verif/i.test(raw)
+          ? "Your OpenAI organization must be verified before it can use this model. Verify it at platform.openai.com under Settings, Organization."
+          : "Your OpenAI organization does not have access to this model. Check Settings, Limits at platform.openai.com, or choose another model.",
+      };
+    }
+    if (status === 404 || code === "model_not_found") {
+      return { ...base, retryable: false, message: "The selected model is not available to this API key. Choose another model in Settings." };
+    }
+    if (code === "moderation_blocked" || code === "content_policy_violation" || /safety|moderation|content[_ ]policy/i.test(raw)) {
+      return { ...base, retryable: false, message: "The request was declined by OpenAI's safety system. Adjust the scene and try again." };
+    }
+    if (status != null && status >= 500) {
+      return { ...base, retryable: true, message: "OpenAI is having trouble right now. Try again in a moment." };
+    }
+    return { ...base, retryable: false, message: `OpenAI rejected the request: ${redactKeys(raw)}` };
   }
   if (err instanceof Error && err.name === "AbortError") return { message: "Cancelled", retryable: false };
   return { message: err instanceof Error ? err.message : String(err), retryable: false };
+}
+
+function redactKeys(message: string) {
+  return message.replace(/sk-[A-Za-z0-9_-]{8,}/g, "sk-***");
 }
