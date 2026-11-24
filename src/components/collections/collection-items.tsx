@@ -326,7 +326,7 @@ function ImageRow({ entry, handle, ...p }: Omit<Common, "entries" | "sortable" |
               // eslint-disable-next-line @next/next/no-img-element
               <img src={thumb} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
             ) : (
-              <TileState status={g.status} />
+              <TileState id={g.id} status={g.status} />
             )}
           </button>
           <span className="font-mono text-[10.5px] text-text-muted tabular-nums">{entry.number}</span>
@@ -455,7 +455,7 @@ function FilmstripView({ entries, collectionId, ...p }: Common) {
             </GenerationContextMenu>
           ) : (
             <div className="relative aspect-[4/5] h-full rounded-md bg-surface">
-              <TileState status={g.status} error={g.errorMessage} />
+              <TileState id={g.id} status={g.status} error={g.errorMessage} />
             </div>
           )
         ) : (

@@ -1,0 +1,10 @@
+/* <dot-loader> styles. Loaded into the element's shadow root.
+   Tokens only, no new colors, radii or shadows. The cells are drawn on the canvas
+   from the kit's tokens: accent, data-1 to data-5, data-5-low and radius-xs. */
+
+/* 140px is 35 units of 4px: nine 12px cells on a 16px pitch. */
+:host { display: inline-block; visibility: visible; width: 140px; max-width: 100%; aspect-ratio: 1; vertical-align: middle; }
+canvas { display: block; width: 100%; height: 100%; }
+
+/* fill: cover the box the page gives it, any shape. */
+:host([fill]) { display: block; width: 100%; height: 100%; aspect-ratio: auto; }

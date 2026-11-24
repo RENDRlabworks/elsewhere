@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { IconButton, MetaLabel } from "@/components/common/primitives";
 import { GenerationContextMenu, TileState } from "@/components/generation/generation-tile";
+import { FillLoader } from "@/components/generation/generation-loader";
 import {
   downloadGeneration,
   isActive,
@@ -191,17 +192,17 @@ function PendingCanvas({ g, session }: { g: Generation; session: StudioSession }
     <div className="flex h-full items-center justify-center p-8">
       <div className="relative flex max-h-full max-w-full flex-col items-center justify-center rounded-sm border border-border bg-surface" style={{ aspectRatio: ratio, height: "80%" }}>
         {active ? (
-          <>
-            <div className="absolute inset-0 animate-pulse bg-elevated/40" />
-            <div className="relative flex flex-col items-center gap-3">
-              <LoaderCircle className="size-5 animate-spin text-text-muted" />
-              <div className="label-meta">{STATUS_LABEL[g.status]}</div>
-              <div className="font-mono text-[12px] text-text-muted tabular-nums">{elapsed}</div>
-              <Button size="sm" variant="ghost" onClick={() => void session.cancel(g)}>
-                Cancel
-              </Button>
+          <FillLoader id={g.id} inset={24}>
+            <div className="absolute inset-x-0 bottom-4 flex justify-center">
+              <div className="flex items-center gap-3 rounded-md border border-border bg-surface/90 py-1 pr-1 pl-3 backdrop-blur-sm">
+                <span className="label-meta">{STATUS_LABEL[g.status]}</span>
+                <span className="font-mono text-[12px] text-text-muted tabular-nums">{elapsed}</span>
+                <Button size="sm" variant="ghost" onClick={() => void session.cancel(g)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </>
+          </FillLoader>
         ) : (
           <div className="relative flex flex-col items-center gap-3 px-6 text-center">
             <TileState status={g.status} error={g.errorMessage} />
@@ -491,7 +492,7 @@ export function Canvas({ session }: { session: StudioSession }) {
                   <img src={assetSrc(x.assetId)!} alt="" className="size-full object-cover" loading="lazy" />
                 ) : (
                   <span className="flex size-full items-center justify-center bg-surface">
-                    {isActive(x.status) ? <LoaderCircle className="size-3 animate-spin text-text-muted" /> : <X className="size-3 text-danger" />}
+                    {isActive(x.status) ? <FillLoader id={x.id} inset={3} /> : <X className="size-3 text-danger" />}
                   </span>
                 )}
                 {x.kind !== "generate" ? <span className="absolute bottom-0.5 left-0.5 rounded-[2px] bg-black/70 px-1 font-mono text-[8.5px] text-text-secondary uppercase">{x.kind === "variation" ? "var" : x.kind}</span> : null}
