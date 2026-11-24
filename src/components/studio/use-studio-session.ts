@@ -378,7 +378,7 @@ export function useStudioSession() {
 
   const generatingRef = React.useRef(false);
   const generate = React.useCallback(
-    async (opts: { operation?: "generate" | "variation" | "refine"; parentId?: string | null; instruction?: string; countOverride?: number } = {}) => {
+    async (opts: { operation?: "generate" | "variation" | "refine"; parentId?: string | null; instruction?: string; countOverride?: number; upscale?: boolean } = {}) => {
       if (generatingRef.current) return;
       generatingRef.current = true;
       setGenerating(true);
@@ -397,6 +397,7 @@ export function useStudioSession() {
           instruction: opts.instruction ?? "",
           useReferences: true,
           confirmedCost: false,
+          ...(opts.upscale ? { upscale: true } : {}),
         };
         const submit = async (confirmed: boolean) =>
           api<{ job: { id: string }; generations: Generation[]; notes: string[] }>("/api/generations", { body: { ...body, confirmedCost: confirmed } });
@@ -407,12 +408,12 @@ export function useStudioSession() {
           if (err instanceof ApiError && err.code === "confirm_cost") {
             const d = err.details as { estimateUsd: number; basis: string };
             const ok = await confirmAction({
-              title: `Generate for about $${d.estimateUsd.toFixed(2)}?`,
+              title: `${opts.upscale ? "Upscale" : "Generate"} for about $${d.estimateUsd.toFixed(2)}?`,
               description:
                 d.basis === "recent-average"
                   ? "Estimated from your recent generations with this model. This is above your confirmation threshold."
                   : "Estimated from the provider's published pricing. This is above your confirmation threshold.",
-              confirmLabel: "Generate",
+              confirmLabel: opts.upscale ? "Upscale" : "Generate",
             });
             if (!ok) return;
             res = await submit(true);

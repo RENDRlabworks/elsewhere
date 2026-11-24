@@ -253,3 +253,71 @@ test("library search finds collections as well as images", async ({ page }) => {
   await page.getByLabel("Search collections").fill("no such collection");
   await expect(page.getByText("No collections match")).toBeVisible();
 });
+
+test("captures an idea and makes it a scene", async ({ page }) => {
+  await page.goto("/archive");
+  await expect(page.locator("main").getByRole("heading", { name: "Library" })).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press("n");
+  const dialog = page.getByRole("dialog", { name: "Capture an idea" });
+  await dialog.getByLabel("Idea").fill("A heron standing in a flooded ballroom\nThe chandeliers are lit underwater");
+  await dialog.getByRole("button", { name: "Save to inbox" }).click();
+  await expect(page.getByText("Saved to your inbox")).toBeVisible();
+
+  await page.goto("/inbox");
+  const card = page.getByRole("listitem").filter({ hasText: "A heron standing in a flooded ballroom" });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Make a scene" }).click();
+  // Create loads the scene from ?scene= and then tidies the address, so check the scene, not the URL.
+  await expect(page).toHaveURL(/\/studio/);
+  await expect(page.getByText("A heron standing in a flooded ballroom").first()).toBeVisible({ timeout: 15_000 });
+
+  const { ideas } = await (await page.request.get("/api/inbox?status=used")).json();
+  expect(ideas.some((i: { text: string; sceneId: string | null }) => i.text.startsWith("A heron") && i.sceneId)).toBe(true);
+});
+
+test("things shared from the phone's share sheet land in the inbox", async ({ page }) => {
+  const res = await page.request.post("/share-target", {
+    multipart: { title: "Morning light", text: "Morning light on the reservoir https://example.com/light" },
+    maxRedirects: 0,
+  });
+  expect(res.status()).toBe(303);
+  expect(res.headers()["location"]).toContain("/inbox?shared=1");
+  const { ideas } = await (await page.request.get("/api/inbox")).json();
+  const idea = ideas.find((i: { text: string }) => i.text.startsWith("Morning light"));
+  expect(idea?.url).toBe("https://example.com/light");
+  expect(idea?.source).toBe("shared");
+
+  const manifest = await (await page.request.get("/manifest.webmanifest")).json();
+  expect(manifest.share_target.action).toBe("/share-target");
+});
+
+test("upscales an image with AI from the right-click menu", async ({ page }) => {
+  await page.goto("/archive?q=frozen");
+  const tile = page.locator("main").getByRole("button", { name: /Open The Frozen Hour/ }).first();
+  await expect(tile).toBeVisible({ timeout: 15_000 });
+  await tile.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Upscale with AI" }).click();
+  await expect(page.getByText(/^Upscaling The Frozen Hour/)).toBeVisible();
+  await expect
+    .poll(async () => {
+      const { items } = await (await page.request.get("/api/generations?q=frozen&limit=50")).json();
+      return items.some((g: { tags: string[]; status: string }) => g.tags.includes("upscaled") && g.status === "completed");
+    }, { timeout: 20_000 })
+    .toBe(true);
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true });
+
+  test("navigates with the tab bar and switches Create between image and Direct", async ({ page }) => {
+    await page.goto("/studio");
+    const tabs = page.getByRole("navigation", { name: "Primary" }).last();
+    await expect(tabs.getByRole("link", { name: "Library" })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("tab", { name: "Direct" }).click();
+    await expect(page.getByRole("button", { name: /^Generate/ }).first()).toBeVisible();
+    await tabs.getByRole("link", { name: "Library" }).click();
+    await expect(page).toHaveURL(/\/archive/);
+    await tabs.getByRole("button", { name: "Capture an idea" }).click();
+    await expect(page.getByRole("dialog", { name: "Capture an idea" })).toBeVisible();
+  });
+});

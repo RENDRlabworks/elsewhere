@@ -8,6 +8,7 @@ import {
   ClipboardCopy,
   Dna,
   Expand,
+  Inbox,
   LayoutGrid,
   PanelRight,
   Plus,
@@ -33,6 +34,7 @@ import type { CollectionSummary } from "@/lib/services/collections";
 import { useApp, useProfiles } from "@/stores/app";
 import { hasCommand, runCommand, useUi } from "@/stores/ui";
 import { NAV } from "./nav";
+import { useCapture } from "@/components/inbox/capture";
 
 export function CommandPalette() {
   const router = useRouter();
@@ -77,6 +79,15 @@ export function CommandPalette() {
         <CommandGroup heading="Create">
           <CommandItem onSelect={() => studio("new-scene")}>
             <Plus /> New scene
+          </CommandItem>
+          <CommandItem
+            value="capture an idea inbox note"
+            onSelect={() => {
+              setOpen(false);
+              useCapture.getState().show();
+            }}
+          >
+            <Inbox /> Capture an idea <CommandShortcut>N</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => studio("generate")}>
             <Sparkles /> Generate image <CommandShortcut>⌘↵</CommandShortcut>

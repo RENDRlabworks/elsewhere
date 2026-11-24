@@ -484,3 +484,48 @@ describe("schema parity", () => {
     }
   });
 });
+
+describe("upscale", () => {
+  it("re-renders the source image larger, from its own scene, as a tagged refinement", async () => {
+    const first = await startGeneration(ctx, {
+      idempotencyKey: idem(),
+      sceneId: null,
+      scene: scene({ output: { count: 1, aspectRatio: "4:5", longEdge: 1024 } }),
+      operation: "generate",
+      parentGenerationId: null,
+      instruction: "",
+      useReferences: true,
+      confirmedCost: false,
+    });
+    const parentId = first.generations[0].id;
+    const start = Date.now();
+    let parent = (await ctx.db.table("generations").get(parentId))!;
+    while (parent.status !== "completed" && Date.now() - start < 10_000) {
+      await new Promise((r) => setTimeout(r, 50));
+      parent = (await ctx.db.table("generations").get(parentId))!;
+    }
+    expect(parent.status).toBe("completed");
+
+    // The request's own scene is ignored: an upscale keeps the source's aspect and content.
+    const res = await startGeneration(ctx, {
+      idempotencyKey: idem(),
+      sceneId: null,
+      scene: scene({ title: "Something else", output: { count: 3, aspectRatio: "16:9" } }),
+      operation: "generate",
+      parentGenerationId: parentId,
+      instruction: "",
+      useReferences: true,
+      confirmedCost: false,
+      upscale: true,
+    });
+    const up = res.generations[0];
+    expect(res.generations).toHaveLength(1);
+    expect(up.kind).toBe("refine");
+    expect(up.parentId).toBe(parentId);
+    expect(up.title).toBe(parent.title);
+    expect(up.tags).toContain("upscaled");
+    expect(Math.max(up.width!, up.height!)).toBeGreaterThan(Math.max(parent.width!, parent.height!));
+    expect(up.height! / up.width!).toBeCloseTo(parent.height! / parent.width!, 1);
+    expect(up.prompt).toContain("Upscale only");
+  });
+});

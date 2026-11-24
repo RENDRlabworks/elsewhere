@@ -197,6 +197,37 @@ export type Asset = {
   createdAt: string;
 };
 
+/* -------------------------------------------------------------------------- */
+/* Ideas inbox                                                                */
+/* -------------------------------------------------------------------------- */
+
+export const IDEA_SOURCES = ["typed", "shared", "photo"] as const;
+export const IDEA_STATUSES = ["inbox", "used", "archived"] as const;
+
+/** A quick note, link or photo captured on the go, waiting to become a scene. */
+export type Idea = {
+  id: string;
+  userId: string;
+  text: string;
+  url: string | null;
+  assetId: string | null;
+  source: (typeof IDEA_SOURCES)[number];
+  status: (typeof IDEA_STATUSES)[number];
+  sceneId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const ideaCreateSchema = z.object({
+  text: z.string().trim().max(4000).default(""),
+  url: z.string().trim().url().max(2000).nullable().default(null),
+});
+
+export const ideaUpdateSchema = z.object({
+  text: z.string().trim().max(4000).optional(),
+  status: z.enum(IDEA_STATUSES).optional(),
+});
+
 export type ReferenceImage = {
   id: string;
   userId: string;
@@ -511,6 +542,8 @@ export const generationRequestSchema = z.object({
   useReferences: z.boolean().default(true),
   /** User confirmed a cost above their confirmation threshold. */
   confirmedCost: z.boolean().default(false),
+  /** Re-render the parent image at a higher resolution without changing it. */
+  upscale: z.boolean().optional(),
 });
 export type GenerationRequest = z.infer<typeof generationRequestSchema>;
 

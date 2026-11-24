@@ -157,6 +157,18 @@ describe("row level security", () => {
     ).rejects.toThrow(/row-level security/);
   });
 
+  it("keeps ideas private and stops them pointing at another user's photo", async () => {
+    await as(A, async () => {
+      await db.query("insert into public.ideas (text, asset_id) values ('a fox asleep in a lighthouse lamp', $1)", [assetA]);
+    });
+    const seen = await as(B, () => one<{ n: number }>("select count(*)::int as n from public.ideas"));
+    expect(seen!.n).toBe(0);
+    await expect(as(B, () => db.query("insert into public.ideas (text, asset_id) values ('mine now', $1)", [assetA]))).rejects.toThrow(/row-level security/);
+    await expect(as(B, () => db.query("insert into public.ideas (text, scene_id) values ('mine now', $1)", [sceneA]))).rejects.toThrow(/row-level security/);
+    const upd = await as(B, () => db.query("update public.ideas set status = 'archived'"));
+    expect(upd.affectedRows).toBe(0);
+  });
+
   it("keeps Style DNA versions immutable, even for their owner", async () => {
     await as(A, async () => {
       const upd = await db.query("update public.style_profile_versions set snapshot = '{\"changed\":true}' where id = $1", [versionA]);

@@ -34,7 +34,7 @@ export function PageHeader({
   editorial?: boolean;
 }) {
   return (
-    <header className="flex items-end justify-between gap-6 px-8 pt-8 pb-5">
+    <header className="flex flex-col gap-4 px-4 pt-5 pb-4 md:flex-row md:items-end md:justify-between md:gap-6 md:px-8 md:pt-8 md:pb-5">
       <div className="min-w-0">
         {meta ? <div className="mb-3">{meta}</div> : null}
         <h1 className={cn("truncate text-foreground", editorial ? "text-editorial text-[28px] leading-9" : "text-[24px] leading-8 font-medium tracking-[-0.01em]")}>{title}</h1>

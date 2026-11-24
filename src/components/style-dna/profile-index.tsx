@@ -180,7 +180,7 @@ export function ProfileIndex() {
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1280px] space-y-10 px-8 py-7">
+        <div className="mx-auto max-w-[1280px] space-y-10 px-4 py-4 md:px-8 md:py-7">
           {live.length ? (
             <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {live.map((p) => (

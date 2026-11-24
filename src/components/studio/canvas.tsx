@@ -10,6 +10,7 @@ import {
   Expand,
   FolderPlus,
   Heart,
+  ImageUpscale,
   LoaderCircle,
   Maximize,
   Minimize,
@@ -172,7 +173,7 @@ function EmptyCanvas({ session }: { session: StudioSession }) {
       <div className="text-center">
         <div className="text-[13px] text-foreground">{scene.title || "Untitled scene"}</div>
         <div className="mt-1 max-w-sm text-[12.5px] text-text-muted">
-          Pick a starting image and set the scene on the right. The frame above previews the subject&apos;s placement and palette.
+          Pick a starting image and set the scene in Direct. The frame above previews the subject&apos;s placement and palette.
         </div>
       </div>
       <Button onClick={() => void session.generate()} disabled={session.generating}>
@@ -355,7 +356,7 @@ export function Canvas({ session }: { session: StudioSession }) {
         <div className="flex items-center gap-1">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="font-mono text-[12px] text-text-secondary tabular-nums" disabled={!done} aria-label="View and zoom">
+              <Button variant="ghost" size="sm" className="hidden font-mono text-[12px] text-text-secondary tabular-nums md:inline-flex" disabled={!done} aria-label="View and zoom">
                 {done ? `${Math.round(scale * 100)}%` : "View"}
               </Button>
             </PopoverTrigger>
@@ -386,7 +387,7 @@ export function Canvas({ session }: { session: StudioSession }) {
           <Button
             variant="ghost"
             size="sm"
-            className={cn("text-text-secondary", compareMode !== "off" && "bg-interactive text-foreground")}
+            className={cn("hidden text-text-secondary md:inline-flex", compareMode !== "off" && "bg-interactive text-foreground")}
             disabled={!canCompare}
             onClick={toggleCompare}
             aria-pressed={compareMode !== "off"}
@@ -401,7 +402,7 @@ export function Canvas({ session }: { session: StudioSession }) {
           ) : null}
           {!fullscreen ? (
             <Button variant="ghost" size="sm" className="text-text-secondary" disabled={!done} onClick={() => g && shareImage(g)}>
-              <Share /> Share
+              <Share /> <span className="hidden sm:inline">Share</span>
             </Button>
           ) : null}
           {!fullscreen ? (
@@ -413,12 +414,12 @@ export function Canvas({ session }: { session: StudioSession }) {
               aria-pressed={inspectorOpen}
               aria-keyshortcuts="I"
             >
-              <Info /> Details
+              <Info /> <span className="hidden sm:inline">Details</span>
             </Button>
           ) : null}
-          <IconButton icon={fullscreen ? Minimize : Maximize} label={fullscreen ? "Exit fullscreen" : "Fullscreen"} shortcut="⇧F" onClick={toggleFullscreen} />
+          <IconButton icon={fullscreen ? Minimize : Maximize} label={fullscreen ? "Exit fullscreen" : "Fullscreen"} shortcut="⇧F" onClick={toggleFullscreen} className="hidden md:inline-flex" />
           {!fullscreen ? (
-            <IconButton icon={PanelRight} label={scenePanelOpen ? "Hide controls" : "Show controls"} active={scenePanelOpen} onClick={toggleScenePanel} />
+            <IconButton icon={PanelRight} label={scenePanelOpen ? "Hide controls" : "Show controls"} active={scenePanelOpen} onClick={toggleScenePanel} className="hidden md:inline-flex" />
           ) : null}
         </div>
       </div>
@@ -486,6 +487,13 @@ export function Canvas({ session }: { session: StudioSession }) {
             <IconButton icon={X} label="Reject (keeps it in the archive)" shortcut="X" side="top" active={g!.reviewStatus === "rejected"} onClick={() => void setReviewStatus(g!, g!.reviewStatus === "rejected" ? "unreviewed" : "rejected")} className={g!.reviewStatus === "rejected" ? "text-danger" : ""} />
             <Separator orientation="vertical" className="mx-1 h-4" />
             <IconButton icon={Sparkles} label="Generate variation" shortcut="V" side="top" disabled={session.generating} onClick={() => void session.generate({ operation: "variation", parentId: g!.id })} />
+            <IconButton
+              icon={ImageUpscale}
+              label={Math.max(g!.width ?? 0, g!.height ?? 0) >= 3600 ? "Already at the largest size" : "Upscale with AI"}
+              side="top"
+              disabled={session.generating || Math.max(g!.width ?? 0, g!.height ?? 0) >= 3600}
+              onClick={() => void session.generate({ operation: "refine", parentId: g!.id, upscale: true })}
+            />
             <DirectionPopover icon={Wand2} label="Refine this image" placeholder="Darken the sky and move the fox slightly left" disabled={session.generating} onSubmit={(instruction) => void session.generate({ operation: "refine", parentId: g!.id, instruction, countOverride: 1 })} />
             <Separator orientation="vertical" className="mx-1 h-4" />
             <IconButton icon={FolderPlus} label="Add to collection" side="top" onClick={() => picker.show([g!.id])} />

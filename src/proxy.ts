@@ -25,13 +25,15 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = !!data?.claims?.sub;
   const path = request.nextUrl.pathname;
-  const isPublic = path.startsWith("/login") || path.startsWith("/auth/");
+  const isPublic = path.startsWith("/login") || path.startsWith("/auth/") || path === "/manifest.webmanifest";
 
   if (!signedIn && !isPublic && !path.startsWith("/api/")) {
     const to = request.nextUrl.clone();
     to.pathname = "/login";
-    to.searchParams.set("next", path);
-    return NextResponse.redirect(to);
+    to.search = "";
+    to.searchParams.set("next", path === "/share-target" ? "/inbox" : path);
+    // 303 so a shared POST from the phone's share sheet lands on the login page as a GET.
+    return NextResponse.redirect(to, 303);
   }
   if (signedIn && path === "/login") {
     const to = request.nextUrl.clone();

@@ -4,6 +4,8 @@ import * as React from "react";
 import { Group, Panel, Separator, usePanelRef, type Layout } from "react-resizable-panels";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUi } from "@/stores/ui";
+import { useIsPhone } from "@/lib/client/use-media";
+import { cn } from "@/lib/utils";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
 import { DirectPanel } from "./direct-panel";
@@ -28,8 +30,65 @@ function ResizeHandle() {
   );
 }
 
+/**
+ * On a phone the canvas and Direct take turns: one tap switches between them,
+ * and starting a generation brings the image back into view.
+ */
+function PhoneStudio({ session }: { session: ReturnType<typeof useStudioSession> }) {
+  const [view, setView] = React.useState<"image" | "direct">("image");
+  const inspectorOpen = useUi((s) => s.inspectorOpen);
+  const toggleInspector = useUi((s) => s.toggleInspector);
+  const [wasGenerating, setWasGenerating] = React.useState(session.generating);
+  if (session.generating !== wasGenerating) {
+    setWasGenerating(session.generating);
+    if (session.generating) setView("image");
+  }
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex shrink-0 items-center gap-2 px-4 pt-2 pb-1">
+        <div role="tablist" aria-label="Create" className="grid flex-1 grid-cols-2 rounded-lg bg-surface p-0.5">
+          {(["image", "direct"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => setView(v)}
+              className={cn("h-9 rounded-md text-[14px] transition-colors", view === v ? "bg-interactive text-foreground" : "text-text-muted")}
+            >
+              {v === "image" ? "Image" : "Direct"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1">
+        <div className={cn("absolute inset-0", view !== "image" && "hidden")}>
+          <Canvas session={session} />
+        </div>
+        <div className={cn("absolute inset-0", view !== "direct" && "hidden")}>
+          <DirectPanel session={session} />
+        </div>
+        {inspectorOpen ? (
+          <div className="absolute inset-0 z-20 flex flex-col bg-background">
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
+              <span className="text-[14px] text-foreground">Details</span>
+              <button type="button" onClick={toggleInspector} className="text-[14px] text-text-secondary">
+                Done
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <Inspector session={session} />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function Studio() {
   const session = useStudioSession();
+  const phone = useIsPhone();
   const { scenePanelOpen, inspectorOpen, fullscreen } = useUi();
   const sceneRef = usePanelRef();
   const inspectorRef = usePanelRef();
@@ -51,10 +110,10 @@ export function Studio() {
   if (session.booting) {
     return (
       <div className="flex h-full" aria-busy="true" aria-label="Loading studio">
-        <div className="flex-1 p-12">
+        <div className="flex-1 p-6 md:p-12">
           <Skeleton className="mx-auto h-full max-w-xl rounded-xl" />
         </div>
-        <div className="w-[360px] space-y-2 p-4">
+        <div className="hidden w-[360px] space-y-2 p-4 md:block">
           <Skeleton className="h-28 rounded-xl" />
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 rounded-xl" />
@@ -63,6 +122,8 @@ export function Studio() {
       </div>
     );
   }
+
+  if (phone) return <PhoneStudio session={session} />;
 
   return (
     <Group

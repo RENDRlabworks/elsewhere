@@ -225,24 +225,26 @@ export function ArchiveView() {
         <PageLoader key={k} url={k} onPage={onPage} onError={onError} />
       ))}
 
-      <header className="shrink-0 px-8 pt-8 pb-4">
-        <div className="flex items-end justify-between gap-6">
+      <header className="shrink-0 px-4 pt-5 pb-3 md:px-8 md:pt-8 md:pb-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
           <div className="min-w-0">
             <h1 className="text-[24px] leading-8 font-medium tracking-[-0.01em] text-foreground">Library</h1>
             <div className="mt-4">
               <LibraryTabs active="images" imageCount={initialLoading ? null : total} q={query.q} />
             </div>
           </div>
-          <div className="flex items-center gap-2 pb-1.5">
-            <ReviewButton />
+          <div className="flex items-center gap-2 md:pb-1.5">
             <SearchField value={search} onChange={setSearch} inputRef={searchRef} />
-            <DensityToggle value={density} onChange={(d) => void updatePreferences({ ui: { galleryDensity: d } }).catch((err) => toast.error(errorMessage(err)))} />
+            <ReviewButton />
+            <div className="hidden md:block">
+              <DensityToggle value={density} onChange={(d) => void updatePreferences({ ui: { galleryDensity: d } }).catch((err) => toast.error(errorMessage(err)))} />
+            </div>
           </div>
         </div>
         <p className="sr-only" aria-live="polite">
           {initialLoading ? "Loading history" : `${total} ${hasAny ? "matching images" : "images in your library"}`}
         </p>
-        <div className="mt-5">
+        <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:mt-5 md:overflow-visible md:px-0">
           <ArchiveFilters
             query={query}
             update={update}
@@ -256,7 +258,7 @@ export function ArchiveView() {
       </header>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-8 pt-6 pb-32">
+        <div className="px-4 pt-4 pb-32 md:px-8 md:pt-6">
           {query.q.trim() ? <CollectionMatches q={query.q} /> : null}
           {initialLoading ? (
             <Grid min={minCol}>
@@ -370,7 +372,8 @@ export function ArchiveView() {
 
 function Grid({ min, children }: { min: number; children: React.ReactNode }) {
   return (
-    <div className="grid gap-x-4 gap-y-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${min}px, 1fr))` }}>
+    // At least two columns on a phone, however roomy the chosen density.
+    <div className="grid gap-x-3 gap-y-5 md:gap-x-4 md:gap-y-6" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${min}px, calc(50% - 6px)), 1fr))` }}>
       {children}
     </div>
   );
