@@ -1,4 +1,5 @@
 import "server-only";
+import { normalizeSupabaseUrl } from "@/lib/supabase-url";
 
 /**
  * Centralised, server-only environment access.
@@ -13,7 +14,7 @@ function read(name: string): string | undefined {
 
 export const env = {
   get supabaseUrl() {
-    return read("NEXT_PUBLIC_SUPABASE_URL");
+    return normalizeSupabaseUrl(read("NEXT_PUBLIC_SUPABASE_URL"));
   },
   get supabaseKey() {
     return read("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ?? read("NEXT_PUBLIC_SUPABASE_ANON_KEY");

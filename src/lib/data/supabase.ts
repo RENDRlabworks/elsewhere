@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { HttpError } from "@/lib/server/http";
 import {
   isOperator,
   NotFoundError,
@@ -102,7 +103,21 @@ function applySearch<Q>(query: Q, search: ListOptions<unknown>["search"]): Q {
   return q as unknown as Q;
 }
 
+export const DATABASE_NOT_READY_MESSAGE =
+  "The database isn't set up yet. Run supabase/migrations/20261124000000_initial_schema.sql in the Supabase SQL editor, then retry.";
+
+/** True when PostgREST or Postgres reports that a table does not exist, i.e. the migration has not run. */
+export function isMissingTableError(error: { message?: string; code?: string } | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    /could not find the table .* in the schema cache|relation .* does not exist/i.test(error.message ?? "")
+  );
+}
+
 function fail(table: string, error: { message: string; code?: string } | null): never {
+  if (isMissingTableError(error)) throw new HttpError(503, DATABASE_NOT_READY_MESSAGE, "database_not_ready");
   throw new Error(`[${table}] ${error?.message ?? "Unknown database error"}`);
 }
 

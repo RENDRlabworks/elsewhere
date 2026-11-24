@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { normalizeSupabaseUrl } from "@/lib/supabase-url";
 
 /**
  * Refreshes the Supabase session cookie and keeps signed-out visitors on the
  * login page. In local development mode (no Supabase configured) it is a no-op.
  */
 export async function proxy(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (process.env.ELSEWHERE_DATA_MODE === "local" || !url || !key) return NextResponse.next();
 

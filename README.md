@@ -97,7 +97,7 @@ See `.env.example` for the full list.
 | `OPENAI_IMAGE_MODEL` | No | Default image model. Defaults to `gpt-image-2.6-flare`. |
 | `OPENAI_TEXT_MODEL` | No | Model for concepts, refinement and review. Defaults to `gpt-5.5`. Also settable per user in Settings. |
 | `OPENAI_ORG_ID`, `OPENAI_BASE_URL` | No | Organisation and custom endpoint. |
-| `NEXT_PUBLIC_SUPABASE_URL` | For production | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_URL` | For production | Supabase project URL, for example `https://<ref>.supabase.co`. Any path after the host (such as `/rest/v1/`) is ignored. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | For production | Publishable key (or legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Safe in the browser; all access is constrained by RLS. |
 | `ELSEWHERE_DATA_MODE` | No | Force `local` or `supabase`. |
 | `ELSEWHERE_DATA_DIR` | No | Local store directory. Default `.elsewhere-data`. |
