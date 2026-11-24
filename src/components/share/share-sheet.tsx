@@ -35,7 +35,7 @@ export function ShareSheet() {
   const close = useShareSheet((s) => s.close);
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)] sm:max-w-5xl">
+      <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 max-sm:inset-0 max-sm:data-open:zoom-in-100 max-sm:data-closed:zoom-out-100 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pt-[env(safe-area-inset-top)] max-sm:pb-[env(safe-area-inset-bottom)] sm:max-w-5xl">
         {target?.kind === "image" ? <ImageShare key={target.generation.id} g={target.generation} /> : target ? <BatchExport target={target} /> : null}
       </DialogContent>
     </Dialog>

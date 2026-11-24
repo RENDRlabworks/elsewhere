@@ -155,7 +155,7 @@ export function TabSwitcherButton({ session, className }: { session: StudioSessi
         </span>
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex flex-col gap-3 max-sm:inset-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pt-[calc(env(safe-area-inset-top)+16px)] max-sm:pb-[env(safe-area-inset-bottom)] sm:max-w-md">
+        <DialogContent className="flex flex-col gap-3 max-sm:inset-0 max-sm:data-open:zoom-in-100 max-sm:data-closed:zoom-out-100 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pt-[calc(env(safe-area-inset-top)+16px)] max-sm:pb-[calc(env(safe-area-inset-bottom)+16px)] sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[17px] font-medium">Tabs</DialogTitle>
             <DialogDescription className="text-[12.5px]">Closing a tab keeps its scene in Recent and the Library.</DialogDescription>

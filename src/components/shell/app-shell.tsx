@@ -280,7 +280,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const fullscreen = useUi((s) => s.fullscreen);
   return (
     <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>
-      <div className="flex h-dvh flex-col md:flex-row">
+      {/* Pinned to every edge: iPhone home-screen apps report a dvh that leaves out the safe areas. */}
+      <div className="fixed inset-0 flex flex-col md:flex-row">
         {!fullscreen ? (
           <React.Suspense fallback={<div className="hidden h-full w-[196px] shrink-0 bg-background md:block" />}>
             <Sidebar />
