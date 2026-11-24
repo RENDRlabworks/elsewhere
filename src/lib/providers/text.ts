@@ -60,6 +60,6 @@ export async function structuredCompletion<S extends z.ZodType>(opts: {
   } catch (err) {
     if (err instanceof ProviderError) throw err;
     const d = describeOpenAIError(err);
-    throw new ProviderError(d.message, d.retryable, d.status);
+    throw new ProviderError(d.message, d.retryable, d.status, d.code, d.requestId);
   }
 }

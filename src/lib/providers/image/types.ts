@@ -114,6 +114,10 @@ export class ProviderError extends Error {
     message: string,
     public retryable = false,
     public status?: number,
+    /** Provider's machine-readable error code, for logs. */
+    public code?: string,
+    /** Provider request ID, for logs and support. */
+    public requestId?: string,
   ) {
     super(message);
     this.name = "ProviderError";
