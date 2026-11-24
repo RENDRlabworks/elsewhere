@@ -102,8 +102,8 @@ export function foregroundScaleLanguage(v: number) {
 export function cameraAngleLanguage(angle: Composition["cameraAngle"]) {
   const map: Record<Composition["cameraAngle"], string> = {
     "eye-level": "Eye-level viewpoint",
-    low: "Low camera angle looking slightly upward",
-    high: "High camera angle looking down",
+    low: "Low viewpoint looking slightly upward",
+    high: "High viewpoint looking down",
     overhead: "Directly overhead viewpoint",
     "worms-eye": "Worm's-eye viewpoint from the ground",
     "birds-eye": "Bird's-eye viewpoint from high above",

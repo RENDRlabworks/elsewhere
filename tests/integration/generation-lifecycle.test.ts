@@ -29,6 +29,7 @@ const dir = mkdtempSync(path.join(os.tmpdir(), "elsewhere-test-"));
 const USER = "00000000-0000-4000-8000-0000000000aa";
 const OTHER = "00000000-0000-4000-8000-0000000000bb";
 const LEGACY = "00000000-0000-4000-8000-0000000000cc";
+const LEGACY_V2 = "00000000-0000-4000-8000-0000000000dd";
 const ctxFor = (userId: string): Ctx => ({
   mode: "local",
   userId,
@@ -77,7 +78,7 @@ describe("bootstrap", () => {
       [
         "Atmospheric Monochrome",
         "Cosmic Minimalism",
-        "Elsewhere Original",
+        "Elsewhere Photographic",
         "Elsewhere Volume I",
         "Nocturnal Nature",
         "Quiet Architectural",
@@ -126,7 +127,7 @@ describe("bootstrap", () => {
     expect(seeds.every((s) => s.styleProfileId === added.id)).toBe(true);
     expect((await legacy.db.table("collections").first({ where: { isSeed: true } }))!.styleProfileId).toBe(added.id);
     const after = (await prefsTable.first({}))!;
-    expect(after.bootstrapVersion).toBe(2);
+    expect(after.bootstrapVersion).toBe(3);
     expect(after.data.activeStyleProfileId).toBe(added.id);
     // A default the artist chose themselves is left alone.
     expect(after.data.defaults.styleProfileId).toBe(custom.id);
@@ -139,6 +140,47 @@ describe("bootstrap", () => {
     await ensureBootstrap(other);
     expect(await other.db.table("style_profiles").count()).toBe(7);
     expect(await ctx.db.table("style_profiles").count()).toBe(7);
+  });
+});
+
+describe("bootstrap v3: painterly presets", () => {
+  it("repaints untouched themed presets, renames the photographic one, and leaves edited or locked ones alone", async () => {
+    const legacy = ctxFor(LEGACY_V2);
+    await ensureBootstrap(legacy);
+    const profiles = legacy.db.table("style_profiles");
+    const byKey = async (k: string) => (await profiles.first({ where: { presetKey: k } }))!;
+    const photoMedium = "Minimalist fine-art photography with a cosmic sensibility";
+
+    // Recreate a version 2 workspace: photographic presets at version 1, the original under its old name.
+    for (const key of ["cosmic-minimalism", "nocturnal-nature", "surreal-geological"]) {
+      const p = await byKey(key);
+      await profiles.update(p.id, { attributes: { ...p.attributes, medium: photoMedium } });
+    }
+    const original = await byKey("elsewhere-original");
+    await profiles.update(original.id, { name: "Elsewhere Original" });
+    const locked = await byKey("nocturnal-nature");
+    await profiles.update(locked.id, { locked: true });
+    const edited = await byKey("surreal-geological");
+    await profiles.update(edited.id, { currentVersion: 2 });
+    const prefsTable = legacy.db.table("user_preferences");
+    const prefs = (await prefsTable.first({}))!;
+    await prefsTable.update(prefs.id, { bootstrapVersion: 2 });
+
+    await ensureBootstrap(legacy);
+
+    const cosmic = await byKey("cosmic-minimalism");
+    expect(cosmic.attributes.medium).toMatch(/^Painterly/);
+    expect(cosmic.currentVersion).toBe(2);
+    const versions = await legacy.db.table("style_profile_versions").list({ where: { profileId: cosmic.id } });
+    expect(versions.map((v) => v.version).sort()).toEqual([1, 2]);
+
+    expect((await byKey("nocturnal-nature")).attributes.medium).toBe(photoMedium);
+    expect((await byKey("surreal-geological")).attributes.medium).toBe(photoMedium);
+
+    const renamed = await byKey("elsewhere-original");
+    expect(renamed.name).toBe("Elsewhere Photographic");
+    expect(renamed.attributes.medium).toBe("Surreal fine-art photography");
+    expect((await prefsTable.first({}))!.bootstrapVersion).toBe(3);
   });
 });
 

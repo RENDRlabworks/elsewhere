@@ -17,7 +17,7 @@ test("bootstraps the workspace with Style DNA presets and Volume I", async ({ pa
   await page.goto("/collections");
   await expect(page.getByText("Elsewhere: Volume I").first()).toBeVisible();
   await page.goto("/style-dna");
-  for (const name of ["Elsewhere Volume I", "Elsewhere Original", "Cosmic Minimalism", "Nocturnal Nature", "Atmospheric Monochrome", "Surreal Geological", "Quiet Architectural"]) {
+  for (const name of ["Elsewhere Volume I", "Elsewhere Photographic", "Cosmic Minimalism", "Nocturnal Nature", "Atmospheric Monochrome", "Surreal Geological", "Quiet Architectural"]) {
     await expect(page.getByText(name).first()).toBeVisible();
   }
 });

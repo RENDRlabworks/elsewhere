@@ -22,7 +22,7 @@ const SHARED_PROHIBITED = [
 
 export const ELSEWHERE_ORIGINAL: StylePreset = {
   key: "elsewhere-original",
-  name: "Elsewhere Original",
+  name: "Elsewhere Photographic",
   description:
     "Surreal fine-art photography depicting familiar things in impossible worlds. Photographs captured in places that cannot exist.",
   attributes: {
@@ -75,120 +75,6 @@ export const ELSEWHERE_ORIGINAL: StylePreset = {
     "deep pine",
     "mineral gray",
     "bone",
-  ]),
-};
-
-const COSMIC_MINIMALISM: StylePreset = {
-  key: "cosmic-minimalism",
-  name: "Cosmic Minimalism",
-  description: "Vast, nearly empty cosmic spaces reduced to a few elements. Silence at astronomical scale.",
-  attributes: {
-    ...ELSEWHERE_ORIGINAL.attributes,
-    medium: "Minimalist fine-art photography with a cosmic sensibility",
-    exposure: "Deep blacks dominate; a single field of soft light provides the only real tonal event",
-    lighting: "A single distant light source such as a planet's terminator, a low moon or a faint aurora; nothing else glows",
-    colorPhilosophy: "Midnight blue, indigo and muted champagne; occasional warm dust tones. Very few hues per frame",
-    compositionPhilosophy: "Extreme negative space; one or two elements; strong horizontal calm or central isolation",
-    environmentalTreatment: "Space and landscape merge; horizons dissolve into the cosmos; scale is planetary",
-    emotionalCharacter: "Awe, transcendence, solitude, stillness",
-    requiredElements: ["extreme negative space", "a single focal event"],
-    prohibitedElements: [...SHARED_PROHIBITED, "dense star fields", "colorful nebulae", "lens flares", "science-fiction hardware"],
-    positiveInstructions: "Reduce, then reduce again. Let emptiness carry the image.",
-  },
-  defaultPalette: sw("cm", ["#05060a", "#10142a", "#262b4d", "#6b6a80", "#d8c9a3"], [
-    "void",
-    "midnight",
-    "indigo",
-    "dust violet",
-    "champagne",
-  ]),
-};
-
-const NOCTURNAL_NATURE: StylePreset = {
-  key: "nocturnal-nature",
-  name: "Nocturnal Nature",
-  description: "Moonlit forests, rivers and meadows. Wildlife seen at night under quiet, natural light.",
-  attributes: {
-    ...ELSEWHERE_ORIGINAL.attributes,
-    medium: "Nocturnal nature photography with a surreal undertone",
-    lighting: "Natural moonlight from one direction; cool reflected light from water or snow; no artificial light",
-    colorPhilosophy: "Deep moss, pine, charcoal and moon-silver; cool but never monochrome blue",
-    subjectTreatment: "Animals behave naturally, caught mid-moment; readable silhouettes against faint light",
-    emotionalCharacter: "Stillness, mystery, belonging, quiet wonder",
-    requiredElements: ["moonlight", "living natural environment"],
-  },
-  defaultPalette: sw("nn", ["#07090a", "#18211d", "#2f3d35", "#5d6b66", "#b9c2c0"], [
-    "night",
-    "forest floor",
-    "pine",
-    "lichen gray",
-    "moon silver",
-  ]),
-};
-
-const ATMOSPHERIC_MONOCHROME: StylePreset = {
-  key: "atmospheric-monochrome",
-  name: "Atmospheric Monochrome",
-  description: "Black and white images built from fog, haze and tonal layering.",
-  attributes: {
-    ...ELSEWHERE_ORIGINAL.attributes,
-    medium: "Black and white fine-art photography",
-    colorPhilosophy: "Strictly monochrome; tonal separation replaces color entirely",
-    saturation: "Zero saturation",
-    contrast: "Wide tonal scale from paper white to deep black, separated by layers of atmosphere",
-    atmosphericDepth: "Pronounced: fog, mist and haze define every plane of depth",
-    grain: "Visible silver-gelatin grain, fine and organic",
-    emotionalCharacter: "Contemplation, peaceful melancholy, introspection",
-    requiredElements: ["layered atmosphere", "monochrome tonality"],
-  },
-  defaultPalette: sw("am", ["#0a0a0a", "#2a2a2a", "#5a5a5a", "#9a9a9a", "#e4e2dc"]),
-};
-
-const SURREAL_GEOLOGICAL: StylePreset = {
-  key: "surreal-geological",
-  name: "Surreal Geological",
-  description: "Impossible stone, sand, ice and mineral formations at monumental scale.",
-  attributes: {
-    ...ELSEWHERE_ORIGINAL.attributes,
-    medium: "Large-format landscape photography of impossible geology",
-    exposure: "Darker than conventional landscape work, with light grazing the forms to reveal texture",
-    lighting: "Low raking light or soft overcast that reveals mineral texture and stratification",
-    colorPhilosophy: "Mineral palettes: sandstone, ochre, terracotta, umber, charcoal, basalt; colors come from the rock itself",
-    texture: "Hyper-real mineral texture: strata, fractures, crystalline surfaces, wind-carved grain",
-    environmentalTreatment: "Folded terrain, inverted or floating formations, impossible arches and cantilevers",
-    emotionalCharacter: "Awe, deep time, stillness",
-    requiredElements: ["monumental geological forms", "legible material texture"],
-  },
-  defaultPalette: sw("sg", ["#120e0b", "#3a2a1f", "#7a5136", "#b08158", "#d8c3a0"], [
-    "basalt",
-    "umber",
-    "terracotta",
-    "ochre",
-    "sandstone",
-  ]),
-};
-
-const QUIET_ARCHITECTURAL: StylePreset = {
-  key: "quiet-architectural",
-  name: "Quiet Architectural",
-  description: "Solitary built forms such as stairs, windows, doors and chapels placed in impossible natural settings.",
-  attributes: {
-    ...ELSEWHERE_ORIGINAL.attributes,
-    medium: "Architectural fine-art photography",
-    renderingStyle: "Precise, restrained architectural photography; true verticals; materials rendered honestly",
-    lighting: "A single soft light source, sometimes a lit window or doorway as the only warm accent",
-    colorPhilosophy: "Stone, plaster, weathered wood and the surrounding natural palette; one optional warm accent",
-    compositionPhilosophy: "Strong geometry and symmetry or deliberate asymmetry; generous emptiness around the structure",
-    subjectTreatment: "The structure is the subject; people, if present, are tiny and incidental",
-    emotionalCharacter: "Solitude, belonging, mystery, introspection",
-    requiredElements: ["a single architectural element", "clean geometry"],
-  },
-  defaultPalette: sw("qa", ["#0c0c0d", "#26262a", "#55524d", "#a59e92", "#e3c48f"], [
-    "shadow",
-    "slate",
-    "weathered stone",
-    "plaster",
-    "lamplight",
   ]),
 };
 
@@ -250,12 +136,138 @@ export const ELSEWHERE_VOLUME_ONE: StylePreset = {
   ]),
 };
 
+/*
+ * The themed presets share the Volume I medium (painterly, grain-textured, one glow,
+ * vast darkness) and differ in subject matter, light and colour. Elsewhere
+ * Photographic is the one deliberately photographic option.
+ */
+const PAINTERLY = ELSEWHERE_VOLUME_ONE.attributes;
+
+const COSMIC_MINIMALISM: StylePreset = {
+  key: "cosmic-minimalism",
+  name: "Cosmic Minimalism",
+  description: "Vast, nearly empty cosmic spaces reduced to a few painted elements. Silence at astronomical scale, in the Volume I medium.",
+  attributes: {
+    ...PAINTERLY,
+    medium: "Painterly digital illustration with a cosmic sensibility and the restraint of a fine-art print. Not a photograph.",
+    exposure: "Deep blacks dominate; a single field of soft, glowing light provides the only real tonal event",
+    lighting: "A single distant glow such as a planet's rim, a low moon or a faint aurora, rendered as soft painted light; nothing else glows",
+    colorPhilosophy: "Midnight blue, indigo and muted champagne; occasional warm dust tones. Very few hues per frame",
+    compositionPhilosophy: "Extreme negative space; one or two elements; strong horizontal calm or central isolation",
+    environmentalTreatment: "Space and landscape merge; horizons dissolve into the cosmos; scale is planetary, shapes simple and monumental",
+    emotionalCharacter: "Awe, transcendence, solitude, stillness",
+    requiredElements: ["extreme negative space", "a single focal glow", "an even, fine grain over the whole image"],
+    prohibitedElements: [...PAINTERLY.prohibitedElements, "dense star fields", "colorful nebulae", "lens flares", "science-fiction hardware"],
+    positiveInstructions: "Reduce, then reduce again. Let emptiness and one soft glow carry the image.",
+  },
+  defaultPalette: sw("cm", ["#05060a", "#10142a", "#262b4d", "#6b6a80", "#d8c9a3"], [
+    "void",
+    "midnight",
+    "indigo",
+    "dust violet",
+    "champagne",
+  ]),
+};
+
+const NOCTURNAL_NATURE: StylePreset = {
+  key: "nocturnal-nature",
+  name: "Nocturnal Nature",
+  description: "Moonlit forests, rivers and meadows, and wildlife at night, painted softly under one quiet light.",
+  attributes: {
+    ...PAINTERLY,
+    medium: "Painterly nocturne of the natural world with the restraint of a fine-art print. Not a photograph.",
+    lighting: "Soft painted moonlight from one direction; cool reflected glow from water or snow; no artificial light",
+    colorPhilosophy: "Deep moss, pine, charcoal and moon-silver; cool but never monochrome blue",
+    subjectTreatment: "Animals caught mid-moment as small, flat silhouettes against faint light",
+    environmentalTreatment: "Forests, rivers and meadows reduced to simple layered shapes receding into darkness",
+    emotionalCharacter: "Stillness, mystery, belonging, quiet wonder",
+    requiredElements: ["moonlight", "a living natural environment", "an even, fine grain over the whole image"],
+  },
+  defaultPalette: sw("nn", ["#07090a", "#18211d", "#2f3d35", "#5d6b66", "#b9c2c0"], [
+    "night",
+    "forest floor",
+    "pine",
+    "lichen gray",
+    "moon silver",
+  ]),
+};
+
+const ATMOSPHERIC_MONOCHROME: StylePreset = {
+  key: "atmospheric-monochrome",
+  name: "Atmospheric Monochrome",
+  description: "Black and white images built from fog, haze and tonal layering, like a mezzotint or graphite print.",
+  attributes: {
+    ...PAINTERLY,
+    medium: "Monochrome painterly illustration in the manner of a mezzotint or graphite print. Not a photograph.",
+    colorPhilosophy: "Strictly monochrome; tonal separation replaces color entirely",
+    saturation: "Zero saturation",
+    contrast: "Wide tonal scale from paper white to deep black, separated by soft layers of atmosphere",
+    atmosphericDepth: "Pronounced: fog, mist and haze define every plane of depth",
+    grain: "Visible, even mezzotint or graphite grain across the whole image",
+    emotionalCharacter: "Contemplation, peaceful melancholy, introspection",
+    requiredElements: ["layered atmosphere", "monochrome tonality", "an even, fine grain over the whole image"],
+  },
+  defaultPalette: sw("am", ["#0a0a0a", "#2a2a2a", "#5a5a5a", "#9a9a9a", "#e4e2dc"]),
+};
+
+const SURREAL_GEOLOGICAL: StylePreset = {
+  key: "surreal-geological",
+  name: "Surreal Geological",
+  description: "Impossible stone, sand, ice and mineral formations at monumental scale, painted in simple, grain-textured forms.",
+  attributes: {
+    ...PAINTERLY,
+    medium: "Painterly illustration of impossible geology with the restraint of a fine-art print. Not a photograph.",
+    exposure: "Dark and low-key, with a low glow grazing the forms to reveal their shape",
+    lighting: "Low raking glow or soft overcast light that picks out simplified strata and edges",
+    colorPhilosophy: "Mineral palettes: sandstone, ochre, terracotta, umber, charcoal, basalt; colors come from the rock itself",
+    texture: "Simplified painterly mineral texture: strata and fractures suggested by tone and an even grain, never hyper-real",
+    environmentalTreatment: "Folded terrain, inverted or floating formations, impossible arches and cantilevers, reduced to monumental shapes",
+    emotionalCharacter: "Awe, deep time, stillness",
+    requiredElements: ["monumental geological forms", "an even, fine grain over the whole image"],
+  },
+  defaultPalette: sw("sg", ["#120e0b", "#3a2a1f", "#7a5136", "#b08158", "#d8c3a0"], [
+    "basalt",
+    "umber",
+    "terracotta",
+    "ochre",
+    "sandstone",
+  ]),
+};
+
+const QUIET_ARCHITECTURAL: StylePreset = {
+  key: "quiet-architectural",
+  name: "Quiet Architectural",
+  description: "Solitary built forms such as stairs, windows, doors and chapels in impossible natural settings, painted simply and softly.",
+  attributes: {
+    ...PAINTERLY,
+    medium: "Painterly illustration of solitary architecture with the restraint of a fine-art print. Not a photograph.",
+    renderingStyle: "Clean, simplified painted geometry with soft edges; true verticals; materials suggested by tone rather than detail",
+    lighting: "A single soft glow, often a lit window or doorway as the only warm accent",
+    colorPhilosophy: "Stone, plaster, weathered wood and the surrounding natural palette; one optional warm accent",
+    compositionPhilosophy: "Strong geometry and symmetry or deliberate asymmetry; generous emptiness around the structure",
+    subjectTreatment: "The structure is the subject; people, if present, are tiny flat silhouettes",
+    emotionalCharacter: "Solitude, belonging, mystery, introspection",
+    requiredElements: ["a single architectural element", "clean geometry", "an even, fine grain over the whole image"],
+  },
+  defaultPalette: sw("qa", ["#0c0c0d", "#26262a", "#55524d", "#a59e92", "#e3c48f"], [
+    "shadow",
+    "slate",
+    "weathered stone",
+    "plaster",
+    "lamplight",
+  ]),
+};
+
 export const STYLE_PRESETS: StylePreset[] = [
   ELSEWHERE_VOLUME_ONE,
-  ELSEWHERE_ORIGINAL,
   COSMIC_MINIMALISM,
   NOCTURNAL_NATURE,
   ATMOSPHERIC_MONOCHROME,
   SURREAL_GEOLOGICAL,
   QUIET_ARCHITECTURAL,
+  ELSEWHERE_ORIGINAL,
 ];
+
+/** Presets that were photographic before bootstrap v3, with the name they had then. */
+export const REPAINTED_PRESET_KEYS = ["cosmic-minimalism", "nocturnal-nature", "atmospheric-monochrome", "surreal-geological", "quiet-architectural"] as const;
+export const PHOTOGRAPHIC_PRESET = { key: "elsewhere-original", previousName: "Elsewhere Original" } as const;

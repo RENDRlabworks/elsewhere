@@ -3,7 +3,7 @@ import { sceneContentSchema } from "@/lib/domain/schemas";
 import { assemblePrompt, applyTemplate, ensureOutputRequirements, OUTPUT_REQUIREMENTS } from "@/lib/prompt/assemble";
 import { positionLanguage, subjectHeightLanguage } from "@/lib/prompt/language";
 import { snapshotOf } from "@/lib/style/locking";
-import { ELSEWHERE_ORIGINAL, ELSEWHERE_VOLUME_ONE } from "@/lib/style/presets";
+import { ELSEWHERE_ORIGINAL, ELSEWHERE_VOLUME_ONE, STYLE_PRESETS } from "@/lib/style/presets";
 
 const style = snapshotOf({ ...ELSEWHERE_ORIGINAL, defaultPalette: ELSEWHERE_ORIGINAL.defaultPalette });
 
@@ -97,6 +97,23 @@ describe("assemblePrompt", () => {
     const engine = r.sections.filter((s) => s.key !== "style" && s.key !== "constraints").map((s) => s.text).join(" ");
     expect(engine.toLowerCase()).not.toMatch(/\bphotograph(ed|ic|y)?\b/);
     expect(r.text).toMatch(/painterly/i);
+  });
+
+  it("keeps every preset except Elsewhere Photographic free of photographic direction", () => {
+    for (const preset of STYLE_PRESETS) {
+      // Prohibited elements and negative constraints exist to rule things out, so they are skipped.
+      const rest = Object.entries(preset.attributes).filter(([k]) => k !== "prohibitedElements" && k !== "negativeConstraints");
+      const text = [...rest.flatMap(([, v]) => v), preset.description].join(". ");
+      if (preset.key === "elsewhere-original") {
+        expect(text).toMatch(/photograph/i);
+        continue;
+      }
+      expect(preset.attributes.medium, preset.name).toMatch(/Not a photograph/);
+      // Photography may only be mentioned to rule it out.
+      const mentions = text.match(/[^.;"]*photograph[^.;"]*/gi) ?? [];
+      for (const m of mentions) expect(m, `${preset.name}: ${m}`).toMatch(/\b(not|no|never|avoid)\b/i);
+      expect(preset.attributes.prohibitedElements, preset.name).toContain("photorealism");
+    }
   });
 
   it("includes prohibited style elements as constraints", () => {

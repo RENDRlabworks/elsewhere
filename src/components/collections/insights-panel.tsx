@@ -117,7 +117,7 @@ function InsightsBody({ ins }: { ins: CollectionInsights }) {
       <Dist title="Environments" dist={ins.environments} />
       <Dist title="Palette families" dist={ins.paletteFamilies} />
       <Dist title="Composition" dist={ins.presets} />
-      <Dist title="Camera angle" dist={ins.cameraAngles} />
+      <Dist title="Viewpoint" dist={ins.cameraAngles} />
 
       <Block title="Repeated patterns">
         {ins.repeatedPatterns.length ? (
@@ -160,7 +160,7 @@ function InsightsBody({ ins }: { ins: CollectionInsights }) {
 }
 
 function kindLabel(k: CollectionInsights["suggestions"][number]["kind"]) {
-  return k === "composition" ? "Composition" : k === "anchor" ? "Placement" : k === "angle" ? "Camera" : "Character";
+  return k === "composition" ? "Composition" : k === "anchor" ? "Placement" : k === "angle" ? "Viewpoint" : "Character";
 }
 
 function Cell({ label, value, hint }: { label: string; value: string; hint: string }) {

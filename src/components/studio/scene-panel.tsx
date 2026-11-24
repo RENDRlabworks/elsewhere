@@ -351,7 +351,7 @@ function CompositionSection() {
           </div>
         ) : null}
       </div>
-      <SelectField label="Camera angle" value={c.cameraAngle} options={CAMERA_ANGLE_OPTIONS} onChange={(cameraAngle) => set({ cameraAngle })} />
+      <SelectField label="Viewpoint" value={c.cameraAngle} options={CAMERA_ANGLE_OPTIONS} onChange={(cameraAngle) => set({ cameraAngle })} />
       {hasSubject ? (
         <SliderField
           label="Subject height"
@@ -366,7 +366,7 @@ function CompositionSection() {
       ) : null}
       <SliderField label="Environmental scale" value={c.environmentalScale} onChange={(environmentalScale) => set({ environmentalScale })} describe={environmentalScaleLanguage(c.environmentalScale)} />
       <SliderField label="Scale exaggeration" value={c.scaleExaggeration} onChange={(scaleExaggeration) => set({ scaleExaggeration })} describe={scaleExaggerationLanguage(c.scaleExaggeration)} />
-      <SliderField label="Camera distance" value={c.cameraDistance} onChange={(cameraDistance) => set({ cameraDistance })} describe={cameraDistanceLanguage(c.cameraDistance)} />
+      <SliderField label="Viewing distance" value={c.cameraDistance} onChange={(cameraDistance) => set({ cameraDistance })} describe={cameraDistanceLanguage(c.cameraDistance)} />
       <SliderField label="Perceived depth" value={c.depth} onChange={(depth) => set({ depth })} describe={depthLanguage(c.depth)} />
       <SliderField label="Foreground scale" value={c.foregroundScale} onChange={(foregroundScale) => set({ foregroundScale })} describe={foregroundScaleLanguage(c.foregroundScale)} />
       <p className="text-[11px] leading-snug text-text-muted">Positions and sizes are described to the model in words. Image models interpret them approximately, not to the pixel.</p>

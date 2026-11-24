@@ -70,7 +70,7 @@ export type StyleAttributeKey = (typeof STYLE_ATTRIBUTE_KEYS)[number];
 export const STYLE_ATTRIBUTE_LABELS: Record<StyleAttributeKey, string> = {
   medium: "Artistic medium",
   renderingStyle: "Rendering style",
-  photographic: "Photographic characteristics",
+  photographic: "Surface and optical character",
   exposure: "Exposure",
   contrast: "Contrast",
   shadowDepth: "Shadow depth",

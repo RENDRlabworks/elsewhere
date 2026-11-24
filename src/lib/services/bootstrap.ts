@@ -2,17 +2,17 @@ import "server-only";
 import { characterSchema, compositionSchema, outputSchema, paletteSchema, preferencesSchema, type Preferences, type UserPreferences } from "@/lib/domain/schemas";
 import { ANCHOR_POINTS } from "@/lib/domain/vocab";
 import type { ServerContext } from "@/lib/server/context";
-import { STYLE_PRESETS } from "@/lib/style/presets";
+import { PHOTOGRAPHIC_PRESET, REPAINTED_PRESET_KEYS, STYLE_PRESETS } from "@/lib/style/presets";
 import { VOLUME_ONE, VOLUME_ONE_DESCRIPTION, VOLUME_ONE_NAME } from "@/lib/seed/volume-one";
-import { createStyleProfile } from "./styles";
+import { createStyleProfile, updateStyleProfile } from "./styles";
 
 /** Increment when new seed content must be added to existing accounts. */
-export const BOOTSTRAP_VERSION = 2;
+export const BOOTSTRAP_VERSION = 3;
 
 const inflight = new Map<string, Promise<UserPreferences>>();
 
 /**
- * Idempotently provision a user's workspace: preferences, the six Style DNA
+ * Idempotently provision a user's workspace: preferences, the seven Style DNA
  * presets, and the "Elsewhere: Volume I" collection with its 20 scene records.
  */
 export function ensureBootstrap(ctx: ServerContext): Promise<UserPreferences> {
@@ -147,6 +147,23 @@ async function run(ctx: ServerContext): Promise<UserPreferences> {
     await ctx.db.table("scenes").updateWhere({ status: "seed", styleProfileId: original.id }, { styleProfileId: house.id });
     await ctx.db.table("collections").updateWhere({ isSeed: true, styleProfileId: original.id }, { styleProfileId: house.id });
   }
+  // v3: the themed presets move to the painterly Volume I medium and the photographic
+  // original is renamed. Only untouched presets change; edited or locked ones are
+  // left exactly as the artist has them. Each change is a new version, so history stays.
+  if (prefs.bootstrapVersion < 3) {
+    for (const key of REPAINTED_PRESET_KEYS) {
+      const profile = byKey.get(key);
+      const preset = STYLE_PRESETS.find((p) => p.key === key);
+      if (!profile || !preset || profile.currentVersion !== 1 || profile.locked || profile.lockedAttributes.length) continue;
+      await updateStyleProfile(ctx, profile.id, { name: preset.name, description: preset.description, attributes: preset.attributes }).catch(() => {});
+    }
+    const photographic = byKey.get(PHOTOGRAPHIC_PRESET.key);
+    const renamed = STYLE_PRESETS.find((p) => p.key === PHOTOGRAPHIC_PRESET.key)!.name;
+    if (photographic && photographic.name === PHOTOGRAPHIC_PRESET.previousName && !photographic.locked) {
+      await updateStyleProfile(ctx, photographic.id, { name: renamed }).catch(() => {});
+    }
+  }
+
   const fromDefault = (id: string | null) => (!id || (migrateToHouse && id === original?.id) ? (house?.id ?? null) : id);
 
   const data: Preferences = preferencesSchema.parse({

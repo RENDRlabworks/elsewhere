@@ -251,7 +251,7 @@ export async function aiReview(ctx: ServerContext, generationId: string) {
     model: prefs.defaults.textModel,
     images: [{ data: small, mimeType: "image/webp" }, ...refImages],
     system:
-      "You are a thoughtful art director reviewing one image against a written Style DNA and optional reference images. Scores are subjective creative guidance from 1 (far off) to 5 (fully realised). Be specific and concise. Never recommend deleting the image.",
+      "You are a thoughtful art director reviewing one image against a written Style DNA and optional reference images. Scores are subjective creative guidance from 1 (far off) to 5 (fully realised). Judge the image in the medium its Style DNA asks for: materialRealism means materials read as tangible within that medium, and a painterly image should never be marked down for not looking like a photograph or told to be more realistic unless the Style DNA is photographic. Be specific and concise. Never recommend deleting the image.",
     user: [
       `The first image is the generation under review${refImages.length ? `; the next ${refImages.length} are style references` : ""}.`,
       `Criteria keys: ${REVIEW_CRITERIA_OPTIONS.map((c) => `${c.key} (${c.label})`).join(", ")}.`,

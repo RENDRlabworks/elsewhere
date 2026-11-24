@@ -362,7 +362,7 @@ export const REVIEW_CRITERIA_OPTIONS = opts<ReviewCriterion>([
   ["lighting", "Lighting consistency"],
   ["texture", "Texture consistency"],
   ["negativeSpace", "Negative space"],
-  ["materialRealism", "Material realism"],
+  ["materialRealism", "Material presence"],
   ["emotionalTone", "Emotional tone"],
   ["originality", "Originality"],
   ["restraint", "Restraint (no unnecessary detail)"],
