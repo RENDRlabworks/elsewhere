@@ -29,6 +29,19 @@ const ACTIVE = ["queued", "generating", "processing"] as const;
 const STALE_AFTER_MS = 10 * 60 * 1000;
 const MAX_ACTIVE_JOBS = 3;
 
+/**
+ * Run work after the response is sent (Vercel keeps the function alive via
+ * waitUntil). Outside a request scope, for example in tests or scripts, the
+ * work simply runs in the background of the current process.
+ */
+function scheduleAfterResponse(fn: () => Promise<void>) {
+  try {
+    after(fn);
+  } catch {
+    void fn();
+  }
+}
+
 /** In-process abort handles so cancellation can stop an in-flight provider request. */
 const g = globalThis as unknown as { __elsewhereAborts?: Map<string, AbortController> };
 g.__elsewhereAborts ??= new Map();
@@ -356,7 +369,7 @@ export async function startGeneration(ctx: ServerContext, req: GenerationRequest
       .catch(() => {});
   }
 
-  after(() => processJob(ctx, job.id, plan));
+  scheduleAfterResponse(() => processJob(ctx, job.id, plan));
   return { job, generations, notes: plan.notes, plan };
 }
 

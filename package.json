@@ -37,6 +37,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
