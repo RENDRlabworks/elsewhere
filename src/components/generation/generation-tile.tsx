@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleAlert, Heart, LoaderCircle, Star, X } from "lucide-react";
+import Link from "next/link";
+import { Check, CircleAlert, Heart, LoaderCircle, Star, Wand2, X } from "lucide-react";
 import type { Generation } from "@/lib/domain/schemas";
 import { assetSrc } from "@/lib/client/api";
+import { FillLoader } from "./generation-loader";
 import { cn } from "@/lib/utils";
 import {
   ContextMenu,
@@ -22,6 +24,7 @@ import {
   STATUS_LABEL,
   toggleFavorite,
   useCollectionPicker,
+  useStyleReferencePicker,
 } from "./actions";
 
 export function GenerationContextMenu({
@@ -35,6 +38,7 @@ export function GenerationContextMenu({
 }) {
   const router = useRouter();
   const picker = useCollectionPicker();
+  const stylePicker = useStyleReferencePicker();
   const done = g.status === "completed" && !!g.assetId;
   return (
     <ContextMenu>
@@ -44,6 +48,8 @@ export function GenerationContextMenu({
         {g.sceneSnapshot ? (
           <ContextMenuItem onSelect={() => router.push(`/studio?restore=${g.id}`)}>Restore scene settings</ContextMenuItem>
         ) : null}
+        <ContextMenuItem disabled={!done} onSelect={() => router.push(`/studio?recreate=${g.id}`)}>Recreate in this style</ContextMenuItem>
+        <ContextMenuItem disabled={!done} onSelect={() => stylePicker.show([g.id])}>Use as style reference…</ContextMenuItem>
         {extra}
         <ContextMenuSeparator />
         <ContextMenuItem disabled={!done} onSelect={() => void toggleFavorite(g)}>
@@ -121,7 +127,7 @@ export function GenerationTile({
               className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.015]"
             />
           ) : (
-            <TileState status={g.status} error={g.errorMessage} />
+            <TileState id={g.id} status={g.status} error={g.errorMessage} />
           )}
           {g.isDevPlaceholder ? (
             <span className="absolute top-2 left-2 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] tracking-wide text-warning uppercase">
@@ -148,6 +154,16 @@ export function GenerationTile({
             {selected ? <Check className="size-3" /> : null}
           </button>
         ) : null}
+        {g.status === "completed" && g.assetId ? (
+          <Link
+            href={`/studio?recreate=${g.id}`}
+            aria-label={`Recreate ${g.title} in this style`}
+            title="Recreate in this style"
+            className="absolute right-2 bottom-2 flex h-6 items-center gap-1 rounded-sm bg-black/60 px-1.5 text-[11px] text-white/85 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80 hover:text-white focus-visible:opacity-100"
+          >
+            <Wand2 className="size-3" /> Recreate
+          </Link>
+        ) : null}
         </div>
         {showMeta ? (
           <div className="mt-2 flex items-center justify-between gap-2">
@@ -164,10 +180,17 @@ export function GenerationTile({
   );
 }
 
-export function TileState({ status, error }: { status: Generation["status"]; error?: string | null }) {
+export function TileState({ status, error, id }: { status: Generation["status"]; error?: string | null; id?: string }) {
+  if (isActive(status) && id) {
+    return (
+      <FillLoader id={id} inset={12}>
+        <span className="label-meta absolute bottom-2.5 left-1/2 -translate-x-1/2 rounded-sm border border-border bg-surface px-2 py-0.5">{STATUS_LABEL[status]}</span>
+      </FillLoader>
+    );
+  }
   if (isActive(status)) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface">
         <LoaderCircle className="size-4 animate-spin text-text-muted" />
         <span className="label-meta">{STATUS_LABEL[status]}</span>
       </div>

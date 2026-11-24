@@ -3,7 +3,7 @@ import { sceneContentSchema } from "@/lib/domain/schemas";
 import { assemblePrompt, applyTemplate, ensureOutputRequirements, OUTPUT_REQUIREMENTS } from "@/lib/prompt/assemble";
 import { positionLanguage, subjectHeightLanguage } from "@/lib/prompt/language";
 import { snapshotOf } from "@/lib/style/locking";
-import { ELSEWHERE_ORIGINAL } from "@/lib/style/presets";
+import { ELSEWHERE_ORIGINAL, ELSEWHERE_VOLUME_ONE, STYLE_PRESETS } from "@/lib/style/presets";
 
 const style = snapshotOf({ ...ELSEWHERE_ORIGINAL, defaultPalette: ELSEWHERE_ORIGINAL.defaultPalette });
 
@@ -64,6 +64,56 @@ describe("assemblePrompt", () => {
     expect(assemblePrompt({ scene: scene(), style }).sections.some((s) => s.key === "references")).toBe(false);
     const r = assemblePrompt({ scene: scene(), style, references: [{ role: "lighting", label: "moon" }] });
     expect(r.sections.find((s) => s.key === "references")!.text).toContain("lighting reference");
+  });
+
+  it("tells the model what each reference role carries", () => {
+    const r = assemblePrompt({ scene: scene(), style, references: [{ role: "style", label: "The Drift" }] });
+    const text = r.sections.find((s) => s.key === "references")!.text;
+    expect(text).toMatch(/medium, rendering, brushwork, grain, texture and treatment of light/);
+  });
+
+  it("keeps the scene's subject and palette ahead of style references", () => {
+    const text = assemblePrompt({ scene: scene(), style, references: [{ role: "style", label: "The Drift" }] }).sections.find((s) => s.key === "references")!.text;
+    expect(text).toMatch(/Do not copy the references' subjects, setting or composition/);
+    expect(text).toMatch(/Do not copy the references' colours: the colour palette described in this prompt takes precedence/);
+  });
+
+  it("lets colour and subject references lead when that is their role", () => {
+    const text = assemblePrompt({
+      scene: scene(),
+      style,
+      references: [
+        { role: "color", label: "dusk" },
+        { role: "subject", label: "rider" },
+      ],
+    }).sections.find((s) => s.key === "references")!.text;
+    expect(text).not.toMatch(/Do not copy the references' colours/);
+    expect(text).not.toMatch(/Do not copy the references' subjects/);
+  });
+
+  it("does not force photographic wording on painterly styles", () => {
+    const r = assemblePrompt({ scene: scene({ composition: { cameraAngle: "low" } }), style: snapshotOf(ELSEWHERE_VOLUME_ONE) });
+    // Only the Style DNA itself may mention photography (to rule it out).
+    const engine = r.sections.filter((s) => s.key !== "style" && s.key !== "constraints").map((s) => s.text).join(" ");
+    expect(engine.toLowerCase()).not.toMatch(/\bphotograph(ed|ic|y)?\b/);
+    expect(r.text).toMatch(/painterly/i);
+  });
+
+  it("keeps every preset except Elsewhere Photographic free of photographic direction", () => {
+    for (const preset of STYLE_PRESETS) {
+      // Prohibited elements and negative constraints exist to rule things out, so they are skipped.
+      const rest = Object.entries(preset.attributes).filter(([k]) => k !== "prohibitedElements" && k !== "negativeConstraints");
+      const text = [...rest.flatMap(([, v]) => v), preset.description].join(". ");
+      if (preset.key === "elsewhere-original") {
+        expect(text).toMatch(/photograph/i);
+        continue;
+      }
+      expect(preset.attributes.medium, preset.name).toMatch(/Not a photograph/);
+      // Photography may only be mentioned to rule it out.
+      const mentions = text.match(/[^.;"]*photograph[^.;"]*/gi) ?? [];
+      for (const m of mentions) expect(m, `${preset.name}: ${m}`).toMatch(/\b(not|no|never|avoid)\b/i);
+      expect(preset.attributes.prohibitedElements, preset.name).toContain("photorealism");
+    }
   });
 
   it("includes prohibited style elements as constraints", () => {

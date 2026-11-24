@@ -5,22 +5,26 @@ import Link from "next/link";
 import { Dices, Lock, Plus, Redo2, Undo2, X } from "lucide-react";
 import { characterSchema, type Character, type SceneContent, type SceneField } from "@/lib/domain/schemas";
 import {
-  ATMOSPHERES,
   CAMERA_ANGLE_OPTIONS,
   CHARACTER_OPTIONS,
   COMPOSITION_PRESET_OPTIONS,
   DIRECTION_OPTIONS,
-  EMOTIONAL_TONES,
   HUMAN_KINDS,
-  MATERIALS,
   MOVEMENT_OPTIONS,
-  NATURAL_ELEMENTS,
   REFERENCE_ROLE_OPTIONS,
   RELATIONSHIP_OPTIONS,
   TIME_OPTIONS,
   type CompositionPreset,
 } from "@/lib/domain/vocab";
-import { ENVIRONMENTS, LIGHTING, PHENOMENA } from "@/lib/explore/library";
+import {
+  ATMOSPHERE_SUGGESTIONS,
+  characterSuggestions,
+  EMOTIONAL_TONE_SUGGESTIONS,
+  ENVIRONMENT_SUGGESTIONS,
+  LIGHTING_SUGGESTIONS,
+  MATERIAL_SUGGESTIONS,
+  NATURAL_ELEMENT_SUGGESTIONS,
+} from "@/lib/explore/suggestions";
 import {
   cameraDistanceLanguage,
   depthLanguage,
@@ -42,7 +46,10 @@ import { useProfiles } from "@/stores/app";
 import { useStudio } from "@/stores/studio";
 import { CompositionPad } from "./composition-pad";
 import { heightToSlider, PanelSection, SelectField, SliderField, sliderToHeight, TextField } from "./fields";
+import { IdeaButton } from "./idea-button";
 import { OutputSection } from "./output-section";
+import { StartingImageSection } from "./starting-image";
+import { applySubjectChange } from "./subject-sync";
 import type { StudioSession } from "./use-studio-session";
 
 function useField() {
@@ -53,8 +60,20 @@ function useField() {
   return { scene, update, lock };
 }
 
-function CharacterEditor({ value, onChange, compact }: { value: Character; onChange: (c: Character) => void; compact?: boolean }) {
+function CharacterEditor({
+  value,
+  onChange,
+  compact,
+  slot = "subject",
+}: {
+  value: Character;
+  onChange: (c: Character) => void;
+  compact?: boolean;
+  slot?: "subject" | "secondarySubject";
+}) {
   const set = (p: Partial<Character>) => onChange({ ...value, ...p });
+  // A typed description is followed through the scene once, when the field loses focus.
+  const labelAtFocus = React.useRef<Character | null>(null);
   const isHuman = HUMAN_KINDS.includes(value.kind);
   if (value.kind === "none") {
     return (
@@ -70,10 +89,28 @@ function CharacterEditor({ value, onChange, compact }: { value: Character; onCha
           value={value.label}
           onChange={(label) => set({ label })}
           placeholder={value.kind === "object" ? "a red umbrella" : "optional"}
+          suggestions={characterSuggestions("subjectLabel", value.kind)}
+          onFocus={() => {
+            labelAtFocus.current = useStudio.getState().scene[slot];
+          }}
+          onBlur={() => {
+            const before = labelAtFocus.current;
+            labelAtFocus.current = null;
+            const now = useStudio.getState().scene[slot];
+            if (before && now && before.label.trim() !== now.label.trim()) applySubjectChange(slot, now, before);
+          }}
+          trailing={<IdeaButton field="subjectLabel" slot={slot} label={value.kind === "object" ? "Object" : "Description"} />}
         />
       </div>
-      <TextField label="Action" value={value.action} onChange={(action) => set({ action })} placeholder="pausing mid-step, looking up" />
-      {!compact ? <TextField label="Pose" value={value.pose} onChange={(pose) => set({ pose })} placeholder="optional" /> : null}
+      <TextField
+        label="Action"
+        value={value.action}
+        onChange={(action) => set({ action })}
+        placeholder="pausing mid-step, looking up"
+        suggestions={characterSuggestions("action", value.kind)}
+        trailing={<IdeaButton field="action" slot={slot} label="Action" />}
+      />
+      {!compact ? <TextField label="Pose" value={value.pose} onChange={(pose) => set({ pose })} placeholder="optional" suggestions={characterSuggestions("pose", value.kind)} trailing={<IdeaButton field="pose" slot={slot} label="Pose" />} /> : null}
       <div className="grid grid-cols-2 gap-2">
         <SelectField label="Direction" value={value.direction} options={DIRECTION_OPTIONS} onChange={(direction) => set({ direction })} />
         <SelectField label="Movement" value={value.movement} options={MOVEMENT_OPTIONS} onChange={(movement) => set({ movement })} />
@@ -104,6 +141,8 @@ function CharacterEditor({ value, onChange, compact }: { value: Character; onCha
           value={value.clothing}
           onChange={(clothing) => set({ clothing })}
           placeholder={value.kind === "object" ? "weathered painted wood" : "a long grey wool coat"}
+          suggestions={characterSuggestions("clothing", value.kind)}
+          trailing={<IdeaButton field="clothing" slot={slot} label={value.kind === "object" ? "Material and finish" : "Clothing"} />}
         />
       ) : null}
     </div>
@@ -117,7 +156,7 @@ function SceneSection() {
   const profile = profiles.find((p) => p.id === scene.styleProfileId);
   return (
     <PanelSection id="scene" title="Scene">
-      <TextField label="Title" value={scene.title} onChange={(title) => update({ title })} {...lock("title")} />
+      <TextField label="Title" value={scene.title} onChange={(title) => update({ title })} {...lock("title")} trailing={<IdeaButton field="title" label="Title" />} />
       <TextField
         label="Description"
         value={scene.description}
@@ -126,6 +165,7 @@ function SceneSection() {
         rows={2}
         placeholder="A fox beneath a monumental dandelion."
         {...lock("description")}
+        trailing={<IdeaButton field="description" label="Description" />}
       />
       <TextField
         label="Free direction"
@@ -134,6 +174,7 @@ function SceneSection() {
         multiline
         rows={2}
         placeholder="Anything the structured controls do not capture."
+        trailing={<IdeaButton field="freeDirection" label="Free direction" />}
       />
       <Field
         label="Style DNA"
@@ -177,6 +218,13 @@ function SceneSection() {
   );
 }
 
+/** Kind changes follow through the scene at once; typed descriptions follow on blur. */
+function onCharacter(slot: "subject" | "secondarySubject", next: Character) {
+  const prev = useStudio.getState().scene[slot];
+  if (prev && prev.kind !== next.kind) applySubjectChange(slot, next);
+  else useStudio.getState().update({ [slot]: next });
+}
+
 function SubjectSection() {
   const { scene, update, lock } = useField();
   const l = lock("subject");
@@ -186,7 +234,7 @@ function SubjectSection() {
       title="Subject"
       aside={<LockChip {...l} label="subject" />}
     >
-      <CharacterEditor value={scene.subject} onChange={(subject) => update({ subject })} />
+      <CharacterEditor value={scene.subject} onChange={(subject) => onCharacter("subject", subject)} />
       <div className="border-t border-border pt-3">
         <div className="flex items-center justify-between">
           <span className="text-[12px] text-text-secondary">Secondary subject</span>
@@ -198,7 +246,7 @@ function SubjectSection() {
         </div>
         {scene.secondarySubject ? (
           <div className="mt-3">
-            <CharacterEditor compact value={scene.secondarySubject} onChange={(secondarySubject) => update({ secondarySubject })} />
+            <CharacterEditor compact slot="secondarySubject" value={scene.secondarySubject} onChange={(secondarySubject) => onCharacter("secondarySubject", secondarySubject)} />
           </div>
         ) : (
           <p className="mt-1 text-[11px] text-text-muted">Only when the scene genuinely needs two subjects.</p>
@@ -228,13 +276,9 @@ function LockChip({ locked, onToggleLock, label }: { locked: boolean; onToggleLo
 
 function WorldSection() {
   const { scene, update, lock } = useField();
-  const suggestPhenomenon = () => {
-    const pool = PHENOMENA.filter((p) => p.text !== scene.phenomenon);
-    update({ phenomenon: pool[Math.floor(Math.random() * pool.length)].text });
-  };
   return (
     <PanelSection id="world" title="World">
-      <TextField label="Environment" value={scene.environment} onChange={(environment) => update({ environment })} suggestions={ENVIRONMENTS} placeholder="an ancient pine forest at the edge of a cliff" {...lock("environment")} />
+      <TextField label="Environment" value={scene.environment} onChange={(environment) => update({ environment })} suggestions={ENVIRONMENT_SUGGESTIONS} placeholder="an ancient pine forest at the edge of a cliff" {...lock("environment")} trailing={<IdeaButton field="environment" label="Environment" />} />
       <TextField
         label="Impossible phenomenon"
         value={scene.phenomenon}
@@ -243,20 +287,16 @@ function WorldSection() {
         rows={2}
         placeholder="an inverted mountain range hanging from the sky"
         {...lock("phenomenon")}
-        trailing={
-          <button type="button" onClick={suggestPhenomenon} className="text-[11px] text-text-muted hover:text-text-secondary">
-            Suggest
-          </button>
-        }
+        trailing={<IdeaButton field="phenomenon" label="Impossible phenomenon" />}
       />
       <div className="grid grid-cols-2 gap-2">
-        <TextField label="Natural element" value={scene.naturalElement} onChange={(naturalElement) => update({ naturalElement })} suggestions={NATURAL_ELEMENTS} {...lock("naturalElement")} />
+        <TextField label="Natural element" value={scene.naturalElement} onChange={(naturalElement) => update({ naturalElement })} suggestions={NATURAL_ELEMENT_SUGGESTIONS} {...lock("naturalElement")} trailing={<IdeaButton field="naturalElement" label="Natural element" />} />
         <SelectField label="Time of day" value={scene.timeOfDay} options={TIME_OPTIONS} onChange={(timeOfDay) => update({ timeOfDay })} {...lock("timeOfDay")} />
       </div>
-      <TextField label="Materials" value={scene.materials} onChange={(materials) => update({ materials })} suggestions={MATERIALS} placeholder="wet basalt, velvet moss" {...lock("materials")} />
-      <TextField label="Lighting" value={scene.lighting} onChange={(lighting) => update({ lighting })} suggestions={LIGHTING} placeholder="soft moonlight from behind the subject" {...lock("lighting")} />
-      <TextField label="Atmosphere" value={scene.atmosphere} onChange={(atmosphere) => update({ atmosphere })} suggestions={ATMOSPHERES} {...lock("atmosphere")} />
-      <TextField label="Emotional tone" value={scene.emotionalTone} onChange={(emotionalTone) => update({ emotionalTone })} suggestions={EMOTIONAL_TONES} {...lock("emotionalTone")} />
+      <TextField label="Materials" value={scene.materials} onChange={(materials) => update({ materials })} suggestions={MATERIAL_SUGGESTIONS} placeholder="wet basalt, velvet moss" {...lock("materials")} trailing={<IdeaButton field="materials" label="Materials" />} />
+      <TextField label="Lighting" value={scene.lighting} onChange={(lighting) => update({ lighting })} suggestions={LIGHTING_SUGGESTIONS} placeholder="soft moonlight from behind the subject" {...lock("lighting")} trailing={<IdeaButton field="lighting" label="Lighting" />} />
+      <TextField label="Atmosphere" value={scene.atmosphere} onChange={(atmosphere) => update({ atmosphere })} suggestions={ATMOSPHERE_SUGGESTIONS} {...lock("atmosphere")} trailing={<IdeaButton field="atmosphere" label="Atmosphere" />} />
+      <TextField label="Emotional tone" value={scene.emotionalTone} onChange={(emotionalTone) => update({ emotionalTone })} suggestions={EMOTIONAL_TONE_SUGGESTIONS} {...lock("emotionalTone")} trailing={<IdeaButton field="emotionalTone" label="Emotional tone" />} />
     </PanelSection>
   );
 }
@@ -311,7 +351,7 @@ function CompositionSection() {
           </div>
         ) : null}
       </div>
-      <SelectField label="Camera angle" value={c.cameraAngle} options={CAMERA_ANGLE_OPTIONS} onChange={(cameraAngle) => set({ cameraAngle })} />
+      <SelectField label="Viewpoint" value={c.cameraAngle} options={CAMERA_ANGLE_OPTIONS} onChange={(cameraAngle) => set({ cameraAngle })} />
       {hasSubject ? (
         <SliderField
           label="Subject height"
@@ -326,7 +366,7 @@ function CompositionSection() {
       ) : null}
       <SliderField label="Environmental scale" value={c.environmentalScale} onChange={(environmentalScale) => set({ environmentalScale })} describe={environmentalScaleLanguage(c.environmentalScale)} />
       <SliderField label="Scale exaggeration" value={c.scaleExaggeration} onChange={(scaleExaggeration) => set({ scaleExaggeration })} describe={scaleExaggerationLanguage(c.scaleExaggeration)} />
-      <SliderField label="Camera distance" value={c.cameraDistance} onChange={(cameraDistance) => set({ cameraDistance })} describe={cameraDistanceLanguage(c.cameraDistance)} />
+      <SliderField label="Viewing distance" value={c.cameraDistance} onChange={(cameraDistance) => set({ cameraDistance })} describe={cameraDistanceLanguage(c.cameraDistance)} />
       <SliderField label="Perceived depth" value={c.depth} onChange={(depth) => set({ depth })} describe={depthLanguage(c.depth)} />
       <SliderField label="Foreground scale" value={c.foregroundScale} onChange={(foregroundScale) => set({ foregroundScale })} describe={foregroundScaleLanguage(c.foregroundScale)} />
       <p className="text-[11px] leading-snug text-text-muted">Positions and sizes are described to the model in words. Image models interpret them approximately, not to the pixel.</p>
@@ -420,6 +460,7 @@ export function ScenePanel({ session }: { session: StudioSession }) {
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        <StartingImageSection session={session} />
         <SceneSection />
         <SubjectSection />
         <WorldSection />

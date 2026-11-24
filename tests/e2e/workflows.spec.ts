@@ -17,7 +17,7 @@ test("bootstraps the workspace with Style DNA presets and Volume I", async ({ pa
   await page.goto("/collections");
   await expect(page.getByText("Elsewhere: Volume I").first()).toBeVisible();
   await page.goto("/style-dna");
-  for (const name of ["Elsewhere Original", "Cosmic Minimalism", "Nocturnal Nature", "Atmospheric Monochrome", "Surreal Geological", "Quiet Architectural"]) {
+  for (const name of ["Elsewhere Volume I", "Elsewhere Photographic", "Cosmic Minimalism", "Nocturnal Nature", "Atmospheric Monochrome", "Surreal Geological", "Quiet Architectural"]) {
     await expect(page.getByText(name).first()).toBeVisible();
   }
 });
@@ -58,6 +58,85 @@ test("finds generations in the archive by search", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Open The Frozen Hour/ }).first()).toBeVisible({ timeout: 15_000 });
   await page.goto("/archive?q=nothing-matches-this-query");
   await expect(page.getByRole("button", { name: /Open The Frozen Hour/ })).toHaveCount(0);
+});
+
+test("recreates an image's style with a new direction", async ({ page }) => {
+  await page.goto("/archive?q=frozen");
+  const tile = page.getByRole("button", { name: /Open The Frozen Hour/ }).first();
+  await expect(tile).toBeVisible({ timeout: 15_000 });
+  await tile.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Recreate in this style" }).click();
+
+  await expect(page.getByText(/is attached as the style reference/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Frozen Hour (new)");
+
+  // The image now sits on the Style DNA reference board as a style reference, sharing its file.
+  const { references } = await (await page.request.get("/api/references")).json();
+  const ref = references.find((r: { label: string; role: string }) => r.label === "The Frozen Hour" && r.role === "style");
+  expect(ref).toBeTruthy();
+  const { items } = await (await page.request.get("/api/generations?q=frozen")).json();
+  expect(items.some((g: { assetId: string }) => g.assetId === ref.assetId)).toBe(true);
+});
+
+test("works from a starting image chosen in the Studio and fills fields with ideas", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: "New scene" }).click();
+  await page.getByRole("button", { name: "Choose image" }).click();
+  await page.getByRole("tab", { name: "All images" }).click();
+  await page.getByRole("button", { name: /Select The Frozen Hour/ }).first().click();
+  await page.getByRole("button", { name: "Use its look", exact: true }).click();
+  await expect(page.getByText("Starting image attached")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
+
+  // Ideas fill a field, respect locks, and undo restores the previous text.
+  const env = page.getByLabel("Environment", { exact: true });
+  await env.fill("a quiet shore");
+  await page.getByRole("button", { name: "New idea for Environment" }).click();
+  await expect(env).not.toHaveValue("a quiet shore");
+  await expect(env).not.toHaveValue("");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(env).toHaveValue("a quiet shore");
+  await page.getByRole("button", { name: "Lock Environment" }).click();
+  await expect(page.getByRole("button", { name: "New idea for Environment" })).toBeDisabled();
+
+  // A new scene keeps the starting image.
+  await page.getByRole("button", { name: "New scene" }).click();
+  await expect(page.getByRole("region", { name: "Starting image" }).getByRole("img", { name: "The Frozen Hour" })).toBeVisible();
+});
+
+test("suggestion menus open with every option even when the field has text", async ({ page }) => {
+  await openStudio(page);
+  const env = page.getByLabel("Environment", { exact: true });
+  await env.fill("a black volcanic coastline");
+  await env.locator("..").getByRole("button", { name: "Show suggestions" }).click();
+  const list = page.getByRole("listbox", { name: "Suggestions" });
+  await expect(list.getByRole("option")).toHaveCount(90);
+  await expect(list.getByRole("group", { name: "Ice and snow" })).toBeVisible();
+  await list.getByRole("option", { name: "a vast salt flat stretching to an invisible horizon" }).click();
+  await expect(env).toHaveValue("a vast salt flat stretching to an invisible horizon");
+  await expect(list).toBeHidden();
+  // Typing filters; ArrowDown and Enter choose.
+  await env.fill("forest");
+  await expect(list.getByRole("option")).not.toHaveCount(0);
+  await env.press("ArrowDown");
+  await env.press("Enter");
+  await expect(env).toHaveValue(/forest/);
+});
+
+test("changing the subject rewrites the fields that name it", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: "New scene" }).click();
+  await page.getByLabel("Title", { exact: true }).fill("The Fox's Wish");
+  await page.getByLabel("Description", { exact: true }).first().fill("A fox beneath a dandelion clock.");
+  await page.getByLabel("Character", { exact: true }).first().click();
+  await page.getByRole("option", { name: "Fox" }).click();
+  await page.getByLabel("Character", { exact: true }).first().click();
+  await page.getByRole("option", { name: "Horse" }).click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Horse's Wish");
+  await expect(page.getByLabel("Description", { exact: true }).first()).toHaveValue("A horse beneath a dandelion clock.");
+  await expect(page.getByText(/Updated the title and description to match the horse/)).toBeVisible();
+  await page.getByRole("button", { name: "Undo" }).first().click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("The Fox's Wish");
 });
 
 test("locked Style DNA attributes cannot be changed through the API", async ({ request }) => {

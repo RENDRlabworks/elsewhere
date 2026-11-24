@@ -2,17 +2,17 @@ import "server-only";
 import { characterSchema, compositionSchema, outputSchema, paletteSchema, preferencesSchema, type Preferences, type UserPreferences } from "@/lib/domain/schemas";
 import { ANCHOR_POINTS } from "@/lib/domain/vocab";
 import type { ServerContext } from "@/lib/server/context";
-import { STYLE_PRESETS } from "@/lib/style/presets";
+import { PHOTOGRAPHIC_PRESET, REPAINTED_PRESET_KEYS, STYLE_PRESETS } from "@/lib/style/presets";
 import { VOLUME_ONE, VOLUME_ONE_DESCRIPTION, VOLUME_ONE_NAME } from "@/lib/seed/volume-one";
-import { createStyleProfile } from "./styles";
+import { createStyleProfile, updateStyleProfile } from "./styles";
 
 /** Increment when new seed content must be added to existing accounts. */
-export const BOOTSTRAP_VERSION = 1;
+export const BOOTSTRAP_VERSION = 3;
 
 const inflight = new Map<string, Promise<UserPreferences>>();
 
 /**
- * Idempotently provision a user's workspace: preferences, the six Style DNA
+ * Idempotently provision a user's workspace: preferences, the seven Style DNA
  * presets, and the "Elsewhere: Volume I" collection with its 20 scene records.
  */
 export function ensureBootstrap(ctx: ServerContext): Promise<UserPreferences> {
@@ -69,6 +69,8 @@ async function run(ctx: ServerContext): Promise<UserPreferences> {
     }
   }
   const original = byKey.get("elsewhere-original") ?? null;
+  // The house style: written from the Volume I originals. Seeds and defaults use it.
+  const house = byKey.get("elsewhere-volume-i") ?? original;
 
   // Elsewhere: Volume I
   const seedCollection = await ctx.db.table("collections").first({ where: { isSeed: true } });
@@ -80,7 +82,7 @@ async function run(ctx: ServerContext): Promise<UserPreferences> {
         description: VOLUME_ONE_DESCRIPTION,
         notes: "",
         coverGenerationId: null,
-        styleProfileId: original?.id ?? null,
+        styleProfileId: house?.id ?? null,
         tags: ["original", "volume-i"],
         targetCount: 20,
         viewMode: "editorial",
@@ -118,7 +120,7 @@ async function run(ctx: ServerContext): Promise<UserPreferences> {
               mode: "material",
               swatches: s.palette.map((hex, i) => ({ id: `v1-${s.index}-${i}`, hex, locked: false })),
             }),
-            styleProfileId: original?.id ?? null,
+            styleProfileId: house?.id ?? null,
             referenceIds: [],
             output: outputSchema.parse({}),
             promptOverride: null,
@@ -139,10 +141,35 @@ async function run(ctx: ServerContext): Promise<UserPreferences> {
     }
   }
 
+  // v2: move seeded records and untouched defaults from Elsewhere Original to Elsewhere Volume I.
+  const migrateToHouse = prefs.bootstrapVersion < 2 && house && original && house.id !== original.id;
+  if (migrateToHouse) {
+    await ctx.db.table("scenes").updateWhere({ status: "seed", styleProfileId: original.id }, { styleProfileId: house.id });
+    await ctx.db.table("collections").updateWhere({ isSeed: true, styleProfileId: original.id }, { styleProfileId: house.id });
+  }
+  // v3: the themed presets move to the painterly Volume I medium and the photographic
+  // original is renamed. Only untouched presets change; edited or locked ones are
+  // left exactly as the artist has them. Each change is a new version, so history stays.
+  if (prefs.bootstrapVersion < 3) {
+    for (const key of REPAINTED_PRESET_KEYS) {
+      const profile = byKey.get(key);
+      const preset = STYLE_PRESETS.find((p) => p.key === key);
+      if (!profile || !preset || profile.currentVersion !== 1 || profile.locked || profile.lockedAttributes.length) continue;
+      await updateStyleProfile(ctx, profile.id, { name: preset.name, description: preset.description, attributes: preset.attributes }).catch(() => {});
+    }
+    const photographic = byKey.get(PHOTOGRAPHIC_PRESET.key);
+    const renamed = STYLE_PRESETS.find((p) => p.key === PHOTOGRAPHIC_PRESET.key)!.name;
+    if (photographic && photographic.name === PHOTOGRAPHIC_PRESET.previousName && !photographic.locked) {
+      await updateStyleProfile(ctx, photographic.id, { name: renamed }).catch(() => {});
+    }
+  }
+
+  const fromDefault = (id: string | null) => (!id || (migrateToHouse && id === original?.id) ? (house?.id ?? null) : id);
+
   const data: Preferences = preferencesSchema.parse({
     ...prefs.data,
-    defaults: { ...prefs.data.defaults, styleProfileId: prefs.data.defaults.styleProfileId ?? original?.id ?? null },
-    activeStyleProfileId: prefs.data.activeStyleProfileId ?? original?.id ?? null,
+    defaults: { ...prefs.data.defaults, styleProfileId: fromDefault(prefs.data.defaults.styleProfileId) },
+    activeStyleProfileId: fromDefault(prefs.data.activeStyleProfileId),
   });
   return prefsTable.update(prefs.id, { data, bootstrapVersion: BOOTSTRAP_VERSION });
 }

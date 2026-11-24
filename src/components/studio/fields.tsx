@@ -9,6 +9,8 @@ import { Slider } from "@/components/ui/slider";
 import type { Option } from "@/lib/domain/vocab";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/common/primitives";
+import type { SuggestionGroup } from "@/lib/explore/suggestions";
+import { SuggestInput } from "./suggest-input";
 
 /** Collapsible panel section with remembered open state. */
 export function PanelSection({
@@ -74,6 +76,8 @@ export function TextField({
   hint,
   mono,
   trailing,
+  onFocus,
+  onBlur,
 }: {
   label: string;
   value: string;
@@ -81,15 +85,16 @@ export function TextField({
   placeholder?: string;
   multiline?: boolean;
   rows?: number;
-  suggestions?: readonly string[];
+  suggestions?: readonly string[] | readonly SuggestionGroup[];
   locked?: boolean;
   onToggleLock?: () => void;
   hint?: React.ReactNode;
   mono?: boolean;
   trailing?: React.ReactNode;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   const id = React.useId();
-  const listId = suggestions ? `${id}-list` : undefined;
   return (
     <Field label={label} htmlFor={id} locked={locked} onToggleLock={onToggleLock} hint={hint} trailing={trailing}>
       {multiline ? (
@@ -99,20 +104,15 @@ export function TextField({
           rows={rows}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
           className={cn("min-h-0 resize-none text-[12.5px] leading-relaxed", mono && "font-mono text-[12px]")}
           style={{ fieldSizing: "content" } as React.CSSProperties}
         />
+      ) : suggestions?.length ? (
+        <SuggestInput id={id} value={value} onChange={onChange} suggestions={suggestions} placeholder={placeholder} onFocus={onFocus} onBlur={onBlur} />
       ) : (
-        <>
-          <Input id={id} value={value} placeholder={placeholder} list={listId} onChange={(e) => onChange(e.target.value)} className="h-8 text-[12.5px]" />
-          {suggestions ? (
-            <datalist id={listId}>
-              {suggestions.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          ) : null}
-        </>
+        <Input id={id} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} className="h-8 text-[12.5px]" />
       )}
     </Field>
   );

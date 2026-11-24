@@ -9,6 +9,7 @@ import {
   DIRECTIONS,
   FORMATS,
   GENERATION_KINDS,
+  IDEA_FIELDS,
   JOB_STATUSES,
   MOVEMENTS,
   PALETTE_MODES,
@@ -69,7 +70,7 @@ export type StyleAttributeKey = (typeof STYLE_ATTRIBUTE_KEYS)[number];
 export const STYLE_ATTRIBUTE_LABELS: Record<StyleAttributeKey, string> = {
   medium: "Artistic medium",
   renderingStyle: "Rendering style",
-  photographic: "Photographic characteristics",
+  photographic: "Surface and optical character",
   exposure: "Exposure",
   contrast: "Contrast",
   shadowDepth: "Shadow depth",
@@ -778,6 +779,14 @@ export const conceptRequestSchema = z.object({
   seed: z.number().int().optional(),
   useAi: z.boolean().default(false),
   styleProfileId: z.string().nullable().default(null),
+});
+
+export const ideaRequestSchema = z.object({
+  field: z.enum(IDEA_FIELDS),
+  scene: sceneContentSchema,
+  character: characterSchema.nullable().default(null),
+  count: z.number().int().min(1).max(8).default(6),
+  useAi: z.boolean().default(true),
 });
 
 export { hex as hexSchema };

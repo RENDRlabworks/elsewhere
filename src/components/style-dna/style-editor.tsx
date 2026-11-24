@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Archive, ArchiveRestore, ArrowLeft, Copy, Dna, Loader2, Lock, LockOpen, MoreHorizontal, SearchX } from "lucide-react";
 import {
@@ -134,7 +134,11 @@ function ProfileEditor({
   const router = useRouter();
   const prefs = usePreferences();
   const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT);
-  const [tab, setTab] = React.useState("attributes");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = React.useState(() => {
+    const t = searchParams.get("tab");
+    return t === "references" || t === "versions" ? t : "attributes";
+  });
   const [saving, setSaving] = React.useState(false);
   const [paletteMode, setPaletteMode] = React.useState<PaletteMode>("custom");
   const [viewing, setViewing] = React.useState<StyleProfileVersion | null>(null);
