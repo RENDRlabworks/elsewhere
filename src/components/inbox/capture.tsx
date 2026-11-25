@@ -9,6 +9,7 @@ import { ClipboardPaste, ImagePlus, LoaderCircle, X } from "lucide-react";
 import type { Idea } from "@/lib/domain/schemas";
 import { api, errorMessage } from "@/lib/client/api";
 import { invalidate } from "@/lib/client/resource";
+import { canReadClipboard, imageFrom, readClipboardImage } from "@/lib/client/clipboard";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,23 +32,6 @@ async function saveIdea(text: string, file: File | null) {
   invalidate(...INBOX_KEYS);
   return idea;
 }
-
-/** The first image in a paste or drop, from any source a browser hands over. */
-function imageFrom(data: DataTransfer | null): File | null {
-  if (!data) return null;
-  for (const item of Array.from(data.items ?? [])) {
-    if (item.kind === "file" && item.type.startsWith("image/")) {
-      const f = item.getAsFile();
-      if (f) return f;
-    }
-  }
-  return Array.from(data.files ?? []).find((f) => f.type.startsWith("image/")) ?? null;
-}
-
-const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif" };
-const named = (blob: Blob) => new File([blob], `pasted-photo.${EXT[blob.type] ?? "png"}`, { type: blob.type || "image/png" });
-
-const canReadClipboard = () => typeof navigator !== "undefined" && !!navigator.clipboard && typeof navigator.clipboard.read === "function";
 
 /**
  * Text, a link or a photo. Links in the text are picked out on save. A photo can be
@@ -107,13 +91,8 @@ export function Composer({
 
   async function pasteFromClipboard() {
     try {
-      for (const item of await navigator.clipboard.read()) {
-        const type = item.types.find((t) => t.startsWith("image/"));
-        if (type) {
-          pick(named(await item.getType(type)));
-          return;
-        }
-      }
+      const img = await readClipboardImage();
+      if (img) return pick(img);
       toast("No photo on the clipboard", { description: "Copy a photo first, then tap Paste." });
     } catch {
       toast.error("Elsewhere could not read the clipboard", { description: "Allow pasting when asked, or long-press in the text box and choose Paste." });

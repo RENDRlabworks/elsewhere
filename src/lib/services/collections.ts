@@ -6,8 +6,9 @@ import type { ServerContext } from "@/lib/server/context";
 import { badRequest, notFound } from "@/lib/server/http";
 import type { Bucket } from "@/lib/storage";
 import { fileFromForm, saveImageAsset } from "./assets";
-import { buildSearchText, setTags } from "./tags";
+import { setTags } from "./tags";
 import { renderExport } from "./share";
+import { createImportedGeneration } from "./imports";
 import { type ExportOptions, FORMATS, templateShareText } from "@/lib/share/presets";
 
 export type CollectionSummary = Collection & {
@@ -162,48 +163,15 @@ export async function importOriginal(ctx: ServerContext, collectionId: string, i
   const asset = await saveImageAsset(ctx, "import", file.data, file.mimeType);
   const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, status: _s, origin: _o, seriesIndex: _si, archived: _a, ...content } = scene ?? ({} as Scene);
   void _id; void _u; void _c; void _up; void _s; void _o; void _si; void _a;
-  const base = {
-    sceneId: scene?.id ?? null,
-    jobId: null,
-    parentId: null,
-    rootId: null,
-    kind: "import" as const,
-    source: "imported" as const,
-    status: "completed" as const,
+  const previous = item.generationId;
+  const gen = await createImportedGeneration(ctx, asset, {
     title: scene?.title ?? file.name.replace(/\.[^.]+$/, ""),
-    prompt: "",
-    promptSections: [],
+    sceneId: scene?.id ?? null,
     sceneSnapshot: scene ? content : null,
     styleProfileId: scene?.styleProfileId ?? null,
-    styleVersionId: null,
-    styleSnapshot: null,
-    referenceIds: [],
-    referencesSubmitted: false,
-    provider: null,
-    model: null,
-    outputSettings: null,
-    width: asset.width,
-    height: asset.height,
-    assetId: asset.id,
-    errorMessage: null,
-    durationMs: null,
-    costUsd: null,
-    costEstimated: false,
-    usage: null,
-    rating: 0,
-    favorite: false,
-    reviewStatus: "accepted" as const,
-    notes: "Original artwork, imported.",
     tags: ["original"],
-    characterKind: scene?.subject.kind ?? null,
-    environment: scene?.environment ?? "",
-    paletteHexes: asset.dominantColors,
-    variationIndex: 0,
-    isDevPlaceholder: false,
-    completedAt: new Date().toISOString(),
-  };
-  const previous = item.generationId;
-  const gen = await ctx.db.table("generations").insert({ ...base, searchText: buildSearchText(base) });
+    notes: "Original artwork, imported.",
+  });
   await ctx.db.table("collection_items").update(item.id, { generationId: gen.id });
   await touch(ctx, collectionId);
   return { generation: gen, replaced: previous };

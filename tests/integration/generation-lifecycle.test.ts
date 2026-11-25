@@ -529,3 +529,41 @@ describe("upscale", () => {
     expect(up.prompt).toContain("Upscale only");
   });
 });
+
+describe("variations of an image from outside", () => {
+  it("imports a pasted image and varies it without any look or scene fields", async () => {
+    const { importImage } = await import("@/lib/services/imports");
+    const png = await sharp({ create: { width: 900, height: 600, channels: 3, background: "#30405a" } }).png().toBuffer();
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array(png)], "pasted-photo.png", { type: "image/png" }));
+    const source = await importImage(ctx, form);
+    expect(source.kind).toBe("import");
+    expect(source.status).toBe("completed");
+    expect(source.reviewStatus).toBe("accepted");
+    expect(source.title).toBe("Pasted image");
+
+    const res = await startGeneration(ctx, {
+      idempotencyKey: idem(),
+      sceneId: null,
+      // A scene that would normally add a traveler, a look and a portrait frame.
+      scene: scene({ output: { count: 2, aspectRatio: "4:5" } }),
+      operation: "generate",
+      parentGenerationId: source.id,
+      instruction: "make it dusk",
+      useReferences: true,
+      confirmedCost: false,
+      fromImage: { strength: "subtle" },
+    });
+    expect(res.generations).toHaveLength(2);
+    const v = res.generations[0];
+    expect(v.kind).toBe("variation");
+    expect(v.parentId).toBe(source.id);
+    expect(v.styleProfileId).toBeNull();
+    expect(v.referenceIds).toEqual([]);
+    expect(v.prompt).toContain("close variation of the attached source image");
+    expect(v.prompt).toContain("make it dusk");
+    expect(v.prompt).not.toMatch(/traveler|Style DNA|Artistic medium/i);
+    // The frame follows the pasted image (3:2), not the scene's 4:5.
+    expect(v.width! / v.height!).toBeCloseTo(1.5, 1);
+  });
+});

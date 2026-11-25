@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  compositionSchema,
+  characterSchema, compositionSchema,
   outputSchema,
   type Concept,
   type ConceptVariable,
@@ -402,8 +402,17 @@ export function useStudioSession() {
 
   const generatingRef = React.useRef(false);
   const generate = React.useCallback(
-    async (opts: { operation?: "generate" | "variation" | "refine"; parentId?: string | null; instruction?: string; countOverride?: number; upscale?: boolean } = {}) => {
-      if (generatingRef.current) return;
+    async (
+      opts: {
+        operation?: "generate" | "variation" | "refine";
+        parentId?: string | null;
+        instruction?: string;
+        countOverride?: number;
+        upscale?: boolean;
+        fromImage?: { strength: "subtle" | "strong" };
+      } = {},
+    ): Promise<boolean> => {
+      if (generatingRef.current) return false;
       generatingRef.current = true;
       setGenerating(true);
       const idempotencyKey = newIdempotencyKey();
@@ -422,6 +431,7 @@ export function useStudioSession() {
           useReferences: true,
           confirmedCost: false,
           ...(opts.upscale ? { upscale: true } : {}),
+          ...(opts.fromImage ? { fromImage: opts.fromImage, useReferences: false } : {}),
         };
         const submit = async (confirmed: boolean) =>
           api<{ job: { id: string }; generations: Generation[]; notes: string[] }>("/api/generations", { body: { ...body, confirmedCost: confirmed } });
@@ -439,7 +449,7 @@ export function useStudioSession() {
                   : "Estimated from the provider's published pricing. This is above your confirmation threshold.",
               confirmLabel: opts.upscale ? "Upscale" : "Generate",
             });
-            if (!ok) return;
+            if (!ok) return false;
             res = await submit(true);
           } else throw err;
         }
@@ -450,12 +460,14 @@ export function useStudioSession() {
         invalidate("/api/generations?", "/api/insights");
         // Capability notes are already shown in the Output panel; only surface the unexpected ones.
         for (const n of res.notes) if (!/development sketch|not configured/i.test(n)) toast(n);
+        return true;
       } catch (err) {
         if (err instanceof ApiError && ["daily_limit", "budget_exceeded"].includes(err.code)) {
           toast.error(err.message, { action: { label: "Settings", onClick: () => router.push("/settings#limits") } });
         } else if (err instanceof ApiError && err.code === "no_provider") {
           toast.error(err.message, { action: { label: "Set up", onClick: () => router.push("/settings#integrations") } });
         } else toast.error(errorMessage(err));
+        return false;
       } finally {
         generatingRef.current = false;
         setGenerating(false);
@@ -576,6 +588,42 @@ export function useStudioSession() {
     [save],
   );
 
+  /**
+   * Variations of an image from outside: it is brought in as the source of a new scene
+   * in a free tab, then varied in batches the model can take, up to `count` images.
+   */
+  const maxPerRequest = Math.max(1, Math.min(4, prefs?.limits.maxImagesPerRequest ?? 4));
+  const varyImage = React.useCallback(
+    async (file: File, opts: { count: number; strength: "subtle" | "strong"; instruction: string }) => {
+      if (useStudio.getState().saveState === "dirty") await save();
+      useTabs.getState().ensureFreeTab();
+      useStudio.getState().resetScene({
+        ...defaultsForNew(),
+        title: "Variations",
+        styleProfileId: null,
+        subject: characterSchema.parse({ kind: "none" }),
+      });
+      setExtra(null);
+      const sceneId = await save();
+      if (!sceneId) throw new Error("The scene could not be saved, so nothing was generated.");
+      const form = new FormData();
+      form.set("file", file);
+      form.set("sceneId", sceneId);
+      const { generation } = await api<{ generation: Generation }>("/api/generations/import", { method: "POST", form });
+      useStudio.getState().update({ title: generation.title === "Pasted image" ? "Variations of a pasted image" : `Variations of ${generation.title}` }, { history: false });
+      await reload();
+      useStudio.getState().select(generation.id);
+      let left = Math.max(1, Math.min(8, Math.round(opts.count)));
+      while (left > 0) {
+        const n = Math.min(maxPerRequest, left);
+        const ok = await generate({ operation: "variation", parentId: generation.id, countOverride: n, instruction: opts.instruction, fromImage: { strength: opts.strength } });
+        if (!ok) break;
+        left -= n;
+      }
+    },
+    [save, defaultsForNew, reload, generate, maxPerRequest],
+  );
+
   // Whenever the scene on screen gets an id (a first save, a fork, a loaded scene), the tab follows it.
   React.useEffect(
     () =>
@@ -633,6 +681,8 @@ export function useStudioSession() {
     switchTab,
     closeTab,
     openSceneInTab,
+    varyImage,
+    maxPerRequest,
     defaultsForNew,
     copyPrompt,
     startFromImages,
