@@ -62,7 +62,7 @@ export function InboxView() {
         <div className="w-full max-w-[calc(42rem+4rem)] px-4 pt-2 pb-32 md:px-8">
           {status === "inbox" && !migration ? (
             <div className="mb-8">
-              <Composer autoFocus={capture} onSaved={() => toast.success("Saved to your inbox")} />
+              <Composer autoFocus={capture} pasteAnywhere onSaved={() => toast.success("Saved to your inbox")} />
             </div>
           ) : null}
 
