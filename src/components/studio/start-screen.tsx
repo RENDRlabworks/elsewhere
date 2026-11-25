@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowRight, FilePlus2, Images, Inbox, LoaderCircle, Shuffle, Upload } from "lucide-react";
+import { ArrowRight, ClipboardPaste, Copy, FilePlus2, Images, Inbox, LoaderCircle, Shuffle, Upload } from "lucide-react";
 import type { Generation, Idea, Scene } from "@/lib/domain/schemas";
 import { api, assetSrc, errorMessage } from "@/lib/client/api";
 import { invalidate, useResource } from "@/lib/client/resource";
@@ -13,6 +13,8 @@ import { useProfiles } from "@/stores/app";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { StartingImagePicker } from "./starting-image";
+import { VaryDialog } from "./vary-dialog";
+import { canReadClipboard, imageFrom, readClipboardImage } from "@/lib/client/clipboard";
 import { TabSwitcherButton } from "./tab-strip";
 import type { StudioSession } from "./use-studio-session";
 
@@ -32,6 +34,43 @@ export function StartScreen({ session }: { session: StudioSession }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
+  const [varyOpen, setVaryOpen] = React.useState(false);
+  const [varyFile, setVaryFile] = React.useState<File | null>(null);
+  const clipboardReadable = React.useSyncExternalStore(
+    () => () => {},
+    canReadClipboard,
+    () => false,
+  );
+
+  const vary = (file: File | null) => {
+    if (file) setVaryFile(file);
+    setVaryOpen(true);
+  };
+
+  // Paste an image anywhere on the start screen to make variations of it.
+  React.useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, [contenteditable=true], [role=dialog]")) return;
+      const img = imageFrom(e.clipboardData);
+      if (!img) return;
+      e.preventDefault();
+      setVaryFile(img);
+      setVaryOpen(true);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
+  async function pasteToVary() {
+    try {
+      const img = await readClipboardImage();
+      if (img) vary(img);
+      else toast("No image on the clipboard", { description: "Copy an image first, then paste." });
+    } catch {
+      vary(null);
+    }
+  }
 
   const images = (gens?.items ?? []).filter((g) => g.assetId);
   const coverFor = new Map<string, string>();
@@ -71,6 +110,38 @@ export function StartScreen({ session }: { session: StudioSession }) {
           <TabSwitcherButton session={session} className="-mt-0.5 -mr-1.5 md:hidden" />
         </div>
         <p className="mt-1.5 text-[13px] text-text-muted">{look ? `New scenes use ${look.name}. Change the look once you start.` : "Pick a way in."}</p>
+
+        <section
+          aria-label="Variations of an image"
+          onDragOver={(e) => {
+            if ([...e.dataTransfer.types].includes("Files")) e.preventDefault();
+          }}
+          onDrop={(e) => {
+            const img = imageFrom(e.dataTransfer);
+            if (!img) return;
+            e.preventDefault();
+            vary(img);
+          }}
+          className="mt-7 flex flex-col gap-3 rounded-xl border border-dashed border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <Copy className="mt-0.5 size-5 shrink-0 text-text-secondary" />
+            <div>
+              <p className="text-[14px] text-foreground">Variations of any image</p>
+              <p className="mt-0.5 text-[12px] text-text-muted">Paste one anywhere here, drop it on this box, or choose a file. Pick how many.</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-1.5">
+            {clipboardReadable ? (
+              <Button size="sm" variant="secondary" onClick={() => void pasteToVary()}>
+                <ClipboardPaste /> Paste
+              </Button>
+            ) : null}
+            <Button size="sm" variant="ghost" className="text-text-secondary" onClick={() => vary(null)}>
+              Vary an image
+            </Button>
+          </div>
+        </section>
 
         <section aria-labelledby="start-images" className="mt-8">
           <div className="mb-3 flex items-baseline justify-between">
@@ -195,6 +266,7 @@ export function StartScreen({ session }: { session: StudioSession }) {
           await fromImages(ids, copyScene);
         }}
       />
+      <VaryDialog open={varyOpen} onOpenChange={setVaryOpen} session={session} initialFile={varyFile} />
       <InboxPicker open={inboxOpen} onOpenChange={setInboxOpen} onScene={(s) => void session.openSceneInTab(s)} />
     </div>
   );

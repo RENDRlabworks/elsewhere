@@ -544,6 +544,11 @@ export const generationRequestSchema = z.object({
   confirmedCost: z.boolean().default(false),
   /** Re-render the parent image at a higher resolution without changing it. */
   upscale: z.boolean().optional(),
+  /**
+   * Variations of an image brought in from outside (pasted, dropped or uploaded): the
+   * prompt describes only the variation, with no look, scene fields or references.
+   */
+  fromImage: z.object({ strength: z.enum(["subtle", "strong"]).default("subtle") }).optional(),
 });
 export type GenerationRequest = z.infer<typeof generationRequestSchema>;
 

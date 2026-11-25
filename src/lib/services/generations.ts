@@ -14,7 +14,7 @@ import {
   type StyleSnapshot,
 } from "@/lib/domain/schemas";
 import { ASPECT_RATIOS, type AspectRatio, COMPOSITION_PRESET_OPTIONS } from "@/lib/domain/vocab";
-import { assemblePrompt } from "@/lib/prompt/assemble";
+import { assembleImageVariation, assemblePrompt } from "@/lib/prompt/assemble";
 import { effectiveSwatches } from "@/lib/palette/engine";
 import { costFromUsage, estimateCost, resolveSize, supportedQuality } from "@/lib/providers/image/models";
 import { resolveModel, resolveProvider } from "@/lib/providers/image/registry";
@@ -116,6 +116,23 @@ export function nearestAspect(width: number, height: number): AspectRatio {
  * own scene at twice its size (up to what the model allows), at high quality.
  */
 async function resolveRequest(ctx: ServerContext, req: GenerationRequest): Promise<GenerationRequest> {
+  if (req.fromImage) {
+    if (!req.parentGenerationId) throw new HttpError(400, "Choose an image to make variations of.");
+    const parent = await ctx.db.table("generations").get(req.parentGenerationId);
+    if (!parent?.assetId || !parent.width || !parent.height) throw notFound("Source image");
+    return {
+      ...req,
+      operation: "variation",
+      useReferences: false,
+      scene: {
+        ...req.scene,
+        styleProfileId: null,
+        referenceIds: [],
+        promptOverride: null,
+        output: { ...req.scene.output, aspectRatio: nearestAspect(parent.width, parent.height) },
+      },
+    };
+  }
   if (!req.upscale) return req;
   if (!req.parentGenerationId) throw new HttpError(400, "Choose an image to upscale.");
   const parent = await ctx.db.table("generations").get(req.parentGenerationId);
@@ -171,7 +188,8 @@ export async function planGeneration(ctx: ServerContext, request: GenerationRequ
   let profile: StyleProfile | null = null;
   let versionId: string | null = null;
   let snapshot: StyleSnapshot | null = null;
-  const styleId = scene.styleProfileId ?? prefs.activeStyleProfileId;
+  // Variations of an outside image keep that image's own look, so no Style DNA applies.
+  const styleId = req.fromImage ? null : (scene.styleProfileId ?? prefs.activeStyleProfileId);
   if (styleId) {
     profile = await ctx.db.table("style_profiles").get(styleId);
     if (profile) {
@@ -212,7 +230,9 @@ export async function planGeneration(ctx: ServerContext, request: GenerationRequ
   // Prompt
   let template: string | null = null;
   if (scene.promptTemplateId) template = (await ctx.db.table("prompt_templates").get(scene.promptTemplateId))?.body ?? null;
-  const assembled = assemblePrompt({
+  const assembled = req.fromImage
+    ? assembleImageVariation({ aspectRatio: scene.output.aspectRatio, strength: req.fromImage.strength, instruction: req.instruction })
+    : assemblePrompt({
     scene,
     style: snapshot,
     lockedStyleKeys: profile?.lockedAttributes,

@@ -415,3 +415,46 @@ test("photos can be pasted into the inbox, in the box or anywhere on the page", 
   expect(idea?.assetId).toBeTruthy();
   expect(idea?.source).toBe("photo");
 });
+
+test("pastes an image on the start screen and makes variations of it", async ({ page }) => {
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "What are you starting from?" })).toBeVisible({ timeout: 15_000 });
+
+  await page.evaluate(async () => {
+    const c = document.createElement("canvas");
+    c.width = 120;
+    c.height = 80;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#4a3b2b";
+    ctx.fillRect(0, 0, 120, 80);
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), "image/png"));
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], "copied.png", { type: "image/png" }));
+    (document.activeElement as HTMLElement | null)?.blur();
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  });
+
+  const dialog = page.getByRole("dialog", { name: "Variations of an image" });
+  await expect(dialog.getByRole("img", { name: "Image to vary" })).toBeVisible();
+  await dialog.getByRole("button", { name: "More" }).click();
+  await dialog.getByRole("button", { name: "More" }).click();
+  await expect(dialog.getByText("Runs as 2 batches")).toBeVisible();
+  await dialog.getByLabel("Direction").fill("at dusk");
+  await dialog.getByRole("button", { name: "Make 6 variations" }).click();
+
+  // Six variations of the pasted image, in a scene of their own, none of them using a look.
+  await expect
+    .poll(
+      async () => {
+        const { items } = await (await page.request.get("/api/generations?limit=200")).json();
+        const source = items.find((g: { kind: string; title: string; tags: string[] }) => g.kind === "import" && g.tags.includes("imported") && g.title === "copied");
+        if (!source) return -1;
+        const kids = items.filter((g: { parentId: string; kind: string; status: string; styleProfileId: string | null }) => g.parentId === source.id && g.kind === "variation" && g.status === "completed" && g.styleProfileId === null);
+        return kids.length;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(6);
+  await expect(page.getByText("Variations of copied").first()).toBeVisible();
+});

@@ -308,6 +308,28 @@ export function ensureOutputRequirements(text: string): string {
   return `${text.trim()}\n\n${OUTPUT_REQUIREMENTS}`;
 }
 
+/**
+ * Prompt for variations of an image that came from outside Elsewhere. The source image
+ * carries everything; the words only say how far to move from it.
+ */
+export function assembleImageVariation(input: { aspectRatio: string; strength: "subtle" | "strong"; instruction?: string }): AssembledPrompt {
+  const lead =
+    input.strength === "subtle"
+      ? "Create a close variation of the attached source image. Keep its subject, setting, composition, palette, medium and style. Change only small things: details, texture, the fall of light, the exact moment."
+      : "Create a variation of the attached source image. Keep its medium, style and mood, and explore a distinctly different take on its subject, setting and composition.";
+  const sections: PromptSection[] = [
+    { key: "concept", label: "Variation", text: lead },
+    ...(input.instruction?.trim() ? [{ key: "constraints" as const, label: "Direction", text: capitalize(sentence(`Direction for this variation: ${input.instruction.trim()}`)) }] : []),
+    {
+      key: "output",
+      label: "Output",
+      text: join(`Frame: ${orientationWord(input.aspectRatio)} orientation, aspect ratio ${input.aspectRatio}`, OUTPUT_REQUIREMENTS),
+    },
+  ];
+  const text = sections.map((s) => s.text).join("\n\n");
+  return { sections, assembled: text, text, isManual: false };
+}
+
 export function assemblePrompt(input: AssembleInput): AssembledPrompt {
   const sections = buildSections(input);
   const assembled = applyTemplate(input.template?.trim() ? input.template : DEFAULT_TEMPLATE, sections);
