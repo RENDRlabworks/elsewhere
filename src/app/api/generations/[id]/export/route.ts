@@ -1,4 +1,5 @@
 import { getContext } from "@/lib/server/context";
+import { streamBytes } from "@/lib/server/stream";
 import { handle, notFound } from "@/lib/server/http";
 import { exportFilename } from "@/lib/share/presets";
 import { exportOptionsFromQuery, renderExport } from "@/lib/services/share";
@@ -15,7 +16,7 @@ export const GET = handle(async (req: Request, { params }: { params: Promise<{ i
   if (!g) throw notFound("Image");
   const out = await renderExport(ctx, g, opts);
   const name = exportFilename(g.title, opts);
-  return new Response(new Uint8Array(out.buffer), {
+  return new Response(streamBytes(out.buffer), {
     headers: {
       "Content-Type": out.mime,
       "Content-Disposition": `${url.searchParams.get("inline") ? "inline" : "attachment"}; filename="${name}"`,

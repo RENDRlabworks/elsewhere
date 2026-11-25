@@ -1,5 +1,6 @@
 "use client";
 
+import { fitForUpload } from "@/lib/client/upload";
 import * as React from "react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ export function useImportOriginal(collectionId: string, itemId: string) {
     if (!file) return;
     setBusy(true);
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", await fitForUpload(file, { maxEdge: 4096 }));
     try {
       await api(`/api/collections/${collectionId}/items/${itemId}/import`, { method: "POST", form });
       refreshCollections();

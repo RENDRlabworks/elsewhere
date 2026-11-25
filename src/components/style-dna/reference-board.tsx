@@ -1,5 +1,6 @@
 "use client";
 
+import { fitForUpload } from "@/lib/client/upload";
 import * as React from "react";
 import { toast } from "sonner";
 import { ImagePlus, ImageUp, Loader2, Trash2 } from "lucide-react";
@@ -135,7 +136,7 @@ export function ReferenceBoard({ profileId, readOnly }: { profileId: string; rea
     let ok = 0;
     for (const file of valid) {
       const form = new FormData();
-      form.set("file", file);
+      form.set("file", await fitForUpload(file));
       form.set("profileId", profileId);
       form.set("role", "style");
       form.set("label", file.name.replace(/\.[^.]+$/, "").slice(0, 120));

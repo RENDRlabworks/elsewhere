@@ -1,5 +1,6 @@
 "use client";
 
+import { fitForUpload } from "@/lib/client/upload";
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,7 @@ export const useCapture = create<{ open: boolean; show: () => void; close: () =>
 async function saveIdea(text: string, file: File | null) {
   const form = new FormData();
   form.set("text", text);
-  if (file) form.set("file", file);
+  if (file) form.set("file", await fitForUpload(file));
   const { idea } = await api<{ idea: Idea }>("/api/inbox", { method: "POST", form });
   invalidate(...INBOX_KEYS);
   return idea;

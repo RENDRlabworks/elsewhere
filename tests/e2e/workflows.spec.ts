@@ -470,3 +470,39 @@ test("copies any image to the clipboard from its menu", async ({ page, context }
   const types = await page.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
   expect(types).toContain("image/png");
 });
+
+test("a pasted image too big for the server is shrunk before it is sent", async ({ page }) => {
+  const sizes: number[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/api/generations/import")) sizes.push(r.postDataBuffer()?.byteLength ?? 0);
+  });
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "What are you starting from?" })).toBeVisible({ timeout: 15_000 });
+
+  // About 15 MB of PNG noise, like a full-resolution screenshot or photo.
+  const original = await page.evaluate(async () => {
+    const c = document.createElement("canvas");
+    c.width = 2200;
+    c.height = 1800;
+    const ctx = c.getContext("2d")!;
+    const img = ctx.createImageData(c.width, c.height);
+    for (let i = 0; i < img.data.length; i++) img.data[i] = (Math.random() * 256) | 0;
+    ctx.putImageData(img, 0, 0);
+    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), "image/png"));
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], "huge.png", { type: "image/png" }));
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    return blob.size;
+  });
+  expect(original).toBeGreaterThan(4_500_000);
+
+  const dialog = page.getByRole("dialog", { name: "Variations of an image" });
+  await dialog.getByRole("button", { name: "Fewer" }).click();
+  await dialog.getByRole("button", { name: "Fewer" }).click();
+  await dialog.getByRole("button", { name: "Fewer" }).click();
+  await dialog.getByRole("button", { name: "Make 1 variation" }).click();
+  await expect(page.getByText("Variations of huge").first()).toBeVisible({ timeout: 30_000 });
+  expect(sizes.length).toBe(1);
+  expect(sizes[0]).toBeLessThan(4_500_000);
+});
