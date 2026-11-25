@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns2,
+  Copy,
   Expand,
   FolderPlus,
   Heart,
@@ -41,6 +42,7 @@ import {
   setReviewStatus,
   toggleFavorite,
   useCollectionPicker,
+  copyImage,
 } from "@/components/generation/actions";
 import { useApp } from "@/stores/app";
 import { useUi } from "@/stores/ui";
@@ -314,6 +316,12 @@ export function Canvas({ session }: { session: StudioSession }) {
         else useStudio.getState().undo();
         return;
       }
+      // Copy the image, unless some text is selected (then the browser copies the text).
+      if (mod && e.key.toLowerCase() === "c" && done && !window.getSelection()?.toString()) {
+        e.preventDefault();
+        void copyImage(g!);
+        return;
+      }
       if (mod || e.altKey) return;
       const k = e.key;
       if (k === "Escape" && useUi.getState().fullscreen) toggleFullscreen();
@@ -492,6 +500,7 @@ export function Canvas({ session }: { session: StudioSession }) {
             <DirectionPopover icon={Wand2} label="Refine this image" placeholder="Darken the sky and move the fox slightly left" disabled={session.generating} onSubmit={(instruction) => void session.generate({ operation: "refine", parentId: g!.id, instruction, countOverride: 1 })} />
             <Separator orientation="vertical" className="mx-1 h-4" />
             <IconButton icon={FolderPlus} label="Add to collection" side="top" onClick={() => picker.show([g!.id])} />
+            <IconButton icon={Copy} label="Copy image" shortcut="⌘C" side="top" onClick={() => void copyImage(g!)} />
             <IconButton icon={Share} label="Share or export" side="top" onClick={() => shareImage(g!)} />
           </div>
         ) : null}

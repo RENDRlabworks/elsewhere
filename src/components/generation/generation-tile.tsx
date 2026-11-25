@@ -24,6 +24,7 @@ import {
   setReviewStatus,
   STATUS_LABEL,
   toggleFavorite,
+  copyImage,
   upscaleGeneration,
   useCollectionPicker,
   useStyleReferencePicker,
@@ -69,6 +70,7 @@ export function GenerationContextMenu({
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem disabled={!done} onSelect={() => picker.show([g.id])}>Add to collection…</ContextMenuItem>
+        <ContextMenuItem disabled={!done} onSelect={() => void copyImage(g)}>Copy image</ContextMenuItem>
         <ContextMenuItem disabled={!done} onSelect={() => shareImage(g)}>Share or export…</ContextMenuItem>
         <ContextMenuItem disabled={!done} onSelect={() => downloadGeneration(g)}>Download original</ContextMenuItem>
         <ContextMenuSeparator />

@@ -458,3 +458,15 @@ test("pastes an image on the start screen and makes variations of it", async ({ 
     .toBe(6);
   await expect(page.getByText("Variations of copied").first()).toBeVisible();
 });
+
+test("copies any image to the clipboard from its menu", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/archive?q=frozen");
+  const tile = page.locator("main").getByRole("button", { name: /Open The Frozen Hour/ }).first();
+  await expect(tile).toBeVisible({ timeout: 15_000 });
+  await tile.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Copy image" }).click();
+  await expect(page.getByText("Image copied")).toBeVisible({ timeout: 15_000 });
+  const types = await page.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
+  expect(types).toContain("image/png");
+});

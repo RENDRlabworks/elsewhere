@@ -149,3 +149,27 @@ export async function upscaleGeneration(g: Generation, onOpen?: (id: string) => 
     return null;
   }
 }
+
+/**
+ * Put the full image on the clipboard as a PNG (the format every clipboard takes),
+ * ready to paste into a post, a chat or a design file.
+ */
+export async function copyImage(g: Pick<Generation, "id" | "assetId" | "title">) {
+  if (!g.assetId) return;
+  if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
+    toast.error("This browser cannot copy images", { description: "Use Share or export to download it instead." });
+    return;
+  }
+  const t = toast.loading("Copying image");
+  try {
+    // The fetch is handed to the clipboard straight away, which Safari needs inside the tap or click.
+    const png = fetch(`/api/generations/${g.id}/export?crop=original&size=original&format=png`).then((r) => {
+      if (!r.ok) throw new Error("The image could not be prepared");
+      return r.blob();
+    });
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+    toast.success("Image copied", { id: t, description: "Paste it anywhere." });
+  } catch (err) {
+    toast.error(errorMessage(err) || "The image could not be copied", { id: t });
+  }
+}
