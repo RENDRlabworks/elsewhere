@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getContext } from "@/lib/server/context";
 import { handle, notFound } from "@/lib/server/http";
+import { streamBytes } from "@/lib/server/stream";
 import type { Bucket } from "@/lib/storage";
 
 /**
@@ -25,10 +26,9 @@ export const GET = handle(async (req: Request, { params }: { params: Promise<{ i
   }
   const data = await ctx.storage.get(asset.bucket as Bucket, path);
   if (!data) throw notFound("Image file");
-  return new NextResponse(new Uint8Array(data), {
+  return new NextResponse(streamBytes(data), {
     headers: {
       "Content-Type": thumb ? "image/webp" : asset.mimeType,
-      "Content-Length": String(data.byteLength),
       "Cache-Control": "private, max-age=31536000, immutable",
       ...(download ? { "Content-Disposition": `attachment; filename="${filename}"` } : {}),
     },

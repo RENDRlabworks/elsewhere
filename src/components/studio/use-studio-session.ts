@@ -1,5 +1,6 @@
 "use client";
 
+import { fitForUpload } from "@/lib/client/upload";
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -163,7 +164,7 @@ export function useStudioSession() {
       const profileId = profileForImages();
       if (!profileId) throw new Error("Make a look first, then try again.");
       const form = new FormData();
-      form.set("file", file);
+      form.set("file", await fitForUpload(file));
       form.set("profileId", profileId);
       form.set("role", "style");
       const { reference } = await api<{ reference: { id: string } }>("/api/references", { method: "POST", form });
@@ -607,7 +608,7 @@ export function useStudioSession() {
       const sceneId = await save();
       if (!sceneId) throw new Error("The scene could not be saved, so nothing was generated.");
       const form = new FormData();
-      form.set("file", file);
+      form.set("file", await fitForUpload(file));
       form.set("sceneId", sceneId);
       const { generation } = await api<{ generation: Generation }>("/api/generations/import", { method: "POST", form });
       useStudio.getState().update({ title: generation.title === "Pasted image" ? "Variations of a pasted image" : `Variations of ${generation.title}` }, { history: false });
